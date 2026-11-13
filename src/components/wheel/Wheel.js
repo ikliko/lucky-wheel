@@ -1,12 +1,10 @@
 import * as PIXI from 'pixi.js';
 import {GameConfig} from '@/config/GameConfig.js';
-import {WheelPointer} from '@/components/wheel/WheelPointer.js';
-import {SpinButton} from '@/components/ui/SpinButton.js';
 import {WheelGeometry} from "@/utils/WheelGeometry.js";
 import {WheelSector} from "@/components/wheel/WheelSector.js";
 
 export class Wheel extends PIXI.Container {
-    constructor(resources, onSpin) {
+    constructor() {
         super();
 
         this.geometry = new WheelGeometry(GameConfig.sectorCount);
@@ -32,22 +30,7 @@ export class Wheel extends PIXI.Container {
 
         this.rotator.addChild(this.sectorsLayer)
         this.rotator.addChild(this.labelsLayer)
-
-        this.pointer = new WheelPointer(resources.arrow.texture);
-        this.spinButton = new SpinButton(resources.btnStart.texture, onSpin);
-
         this.addChild(this.rotator);
-        this.addChild(this.pointer);
-        this.addChild(this.spinButton);
-    }
-
-    layoutScreen(screenWidth, screenHeight) {
-        const diameter = GameConfig.wheelRadius * 2
-        const fit = Math.min(screenWidth, screenHeight)
-            * GameConfig.wheelFitRatio / diameter
-
-        this.scale.set(fit);
-        this.position.set(screenWidth / 2, screenHeight / 2);
     }
 
     #drawRim(sectorsLayer) {

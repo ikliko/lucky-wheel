@@ -2,7 +2,8 @@ import * as PIXI from 'pixi.js';
 import {AppConfig} from '@/config/AppConfig.js';
 import {AssetConfig} from '@/config/AssetConfig.js';
 import {AssetManager} from '@/core/AssetManager.js';
-import {Wheel} from '@/components/wheel/Wheel.js';
+import {SceneManager} from "@/core/SceneManager.js";
+import {WheelScene} from "@/scenes/WheelScene.js";
 
 export class GameApplication {
     constructor() {
@@ -13,7 +14,8 @@ export class GameApplication {
         });
 
         this.assetManager = new AssetManager(this.app.loader);
-        this.wheel = null;
+        this.sceneManager = new SceneManager(this.app.stage);
+        this.wheelScene = null;
     }
 
     async start() {
@@ -21,14 +23,14 @@ export class GameApplication {
 
         const resources = await this.assetManager.load(AssetConfig);
 
-        this.wheel = new Wheel(resources, () => {
+        this.wheelScene = new WheelScene(resources, () => {
             console.log('spin the wheel');
         });
 
-        this.app.stage.addChild(this.wheel);
+        this.sceneManager.show(this.wheelScene);
 
         const onResize = () => {
-            this.wheel.layoutScreen(this.app.screen.width, this.app.screen.height);
+            this.sceneManager.layoutScreen(this.app.screen.width, this.app.screen.height);
         };
 
         onResize();
