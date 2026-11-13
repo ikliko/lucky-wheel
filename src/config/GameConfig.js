@@ -6,7 +6,7 @@ export const GameConfig = {
     startLocalDiameter: 120,
     sectorCount: 18,
     wheelRadius: 400,
-    labelRadiusRatio: 0.62,
+    labelRadiusRatio: 0.8,
     colors: {
         sectorA: 0x3ab8eb,
         sectorB: 0xf5a623,
