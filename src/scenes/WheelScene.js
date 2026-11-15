@@ -3,18 +3,22 @@ import {WheelPointer} from "@/components/wheel/WheelPointer.js";
 import {SpinButton} from "@/components/ui/SpinButton.js";
 import {GameConfig} from "@/config/GameConfig.js";
 import {BaseScene} from "@/scenes/BaseScene.js";
+import {WheelAnimator} from "@/components/wheel/WheelAnimator.js";
 
 export class WheelScene extends BaseScene {
-    #created = false
+    #created = false;
+    #spining = false;
 
-    constructor(resources, onSpin) {
+    constructor(resources, ticker, onSpin) {
         super();
 
         this.resources = resources;
+        this.ticker = ticker;
         this.onSpin = onSpin;
         this.wheel = null;
         this.pointer = null;
         this.spinButton = null;
+        this.animator = null;
     }
 
     create() {
@@ -25,12 +29,29 @@ export class WheelScene extends BaseScene {
         this.wheel = new Wheel();
         this.pointer = new WheelPointer(this.resources.arrow.texture);
         this.spinButton = new SpinButton(this.resources.btnStart.texture, this.onSpin);
+        this.animator = new WheelAnimator(this.wheel, this.ticker)
 
         this.addChild(this.wheel);
         this.addChild(this.pointer);
         this.addChild(this.spinButton);
 
         this.#created = true;
+    }
+
+    async spinTo(sectorIndex) {
+        if(!this.animator || this.#spining) {
+            return;
+        }
+
+        this.#spining = true;
+
+        try {
+            await this.animator.spinTo({sectorIndex});
+        } catch  {
+            // todo cancel
+        } finally {
+            this.#spining = false;
+        }
     }
 
     layoutScreen(screenWidth, screenHeight) {

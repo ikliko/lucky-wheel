@@ -23,8 +23,8 @@ export class GameApplication {
 
         const resources = await this.assetManager.load(AssetConfig);
 
-        this.wheelScene = new WheelScene(resources, () => {
-            console.log('spin the wheel');
+        this.wheelScene = new WheelScene(resources, this.app.ticker, () => {
+            this.wheelScene.spinTo(6);
         });
 
         this.sceneManager.show(this.wheelScene);
