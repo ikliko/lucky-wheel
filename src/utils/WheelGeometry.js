@@ -15,4 +15,17 @@ export class WheelGeometry {
     midAngle(index) {
         return this.pointerAngle + index * this.sweep;
     }
+
+    normalizeAngle(radians) {
+        const tau = Math.PI * 2;
+        return ((radians % tau) + tau) % tau;
+    }
+
+    rotationToCenterSector(sectorIndex, currentRotation, extraTurns = 0) {
+        const targetMod = this.normalizeAngle(-sectorIndex * this.sweep);
+        const currentMod = this.normalizeAngle(currentRotation);
+        const delta = this.normalizeAngle(targetMod - currentMod);
+        
+        return currentRotation + delta + extraTurns * Math.PI * 2;
+    }
 }

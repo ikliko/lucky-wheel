@@ -1,4 +1,5 @@
 import {AnimationConfig} from "@/config/AnimationConfig.js";
+import {Easing} from "@/utils/Easing.js";
 
 export class WheelAnimator {
     #tick = null;
@@ -10,12 +11,15 @@ export class WheelAnimator {
     }
 
     spinTo({sectorIndex, durationMs = AnimationConfig.durationMs}) {
-        void sectorIndex;
-
         this.cancel();
 
         const startRotation = this.wheel.rotator.rotation;
-        const endRotation = startRotation + AnimationConfig.extraTurns * Math.PI * 2;
+        const endRotation = this.wheel.geometry.rotationToCenterSector(
+            sectorIndex,
+            startRotation,
+            AnimationConfig.extraTurns
+        );
+        const ease = Easing[AnimationConfig.easing] || Easing.easeOutCubic;
 
         return new Promise((resolve, reject) => {
             let elapsed = 0;
@@ -26,7 +30,7 @@ export class WheelAnimator {
                 const t = Math.min(1, elapsed / durationMs);
 
                 this.wheel.rotator.rotation =
-                    startRotation + (endRotation - startRotation) * t;
+                    startRotation + (endRotation - startRotation) * ease(t);
 
                 if (t >= 1) {
                     this.wheel.rotator.rotation = endRotation;

@@ -24,7 +24,7 @@ export class GameApplication {
         const resources = await this.assetManager.load(AssetConfig);
 
         this.wheelScene = new WheelScene(resources, this.app.ticker, () => {
-            this.wheelScene.spinTo(6);
+            this.wheelScene.spinTo(5);
         });
 
         this.sceneManager.show(this.wheelScene);
