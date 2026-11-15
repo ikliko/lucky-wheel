@@ -7,7 +7,6 @@ import {WheelAnimator} from "@/components/wheel/WheelAnimator.js";
 
 export class WheelScene extends BaseScene {
     #created = false;
-    #spinning = false;
 
     constructor(resources, ticker, onSpin) {
         super();
@@ -39,19 +38,11 @@ export class WheelScene extends BaseScene {
     }
 
     async spinTo(sectorIndex) {
-        if(!this.animator || this.#spinning) {
-            return;
+        if (!this.animator) {
+            throw new Error('WheelAnimator is not initialized');
         }
 
-        this.#spinning = true;
-
-        try {
-            await this.animator.spinTo({sectorIndex});
-        } catch  {
-            // todo cancel
-        } finally {
-            this.#spinning = false;
-        }
+        await this.animator.spinTo({sectorIndex});
     }
 
     layoutScreen(screenWidth, screenHeight) {

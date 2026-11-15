@@ -1,0 +1,45 @@
+import {describe, it, expect} from 'vitest';
+import {GameState, GameStateMachine} from '@/game/GameStateMachine.js';
+
+describe('GameStateMachine', () => {
+    it('does not allow direct state mutation', () => {
+        const sm = new GameStateMachine();
+
+        expect(() => {
+            sm.state = GameState.IDLE;
+        }).toThrow(TypeError);
+
+        expect(sm.state).toBe(GameState.BOOTING);
+    });
+
+    it('starts in BOOTING', () => {
+        const sm = new GameStateMachine();
+        expect(sm.state).toBe(GameState.BOOTING);
+    });
+
+    it('boot path: BOOTING → IDLE', () => {
+        const sm = new GameStateMachine();
+        sm.transition(GameState.IDLE);
+        expect(sm.isIdle).toBe(true);
+    });
+
+    it('allows IDLE → SPINNING → SHOWING_WIN → IDLE', () => {
+        const sm = new GameStateMachine(GameState.IDLE);
+        sm.transition(GameState.SPINNING);
+        sm.transition(GameState.SHOWING_WIN);
+        sm.transition(GameState.IDLE);
+        expect(sm.state).toBe(GameState.IDLE);
+    });
+
+    it('throws on invalid transition', () => {
+        const sm = new GameStateMachine(GameState.IDLE);
+        expect(() => sm.transition(GameState.SHOWING_WIN)).toThrow(/Invalid transition/);
+    });
+
+    it('ERROR has no exits', () => {
+        const sm = new GameStateMachine(GameState.SPINNING);
+        sm.transition(GameState.ERROR);
+        expect(sm.canTransition(GameState.IDLE)).toBe(false);
+        expect(() => sm.transition(GameState.IDLE)).toThrow();
+    });
+});

@@ -4,6 +4,7 @@ import {AssetConfig} from '@/config/AssetConfig.js';
 import {AssetManager} from '@/core/AssetManager.js';
 import {SceneManager} from "@/core/SceneManager.js";
 import {WheelScene} from "@/scenes/WheelScene.js";
+import {GameController} from "@/game/GameController.js";
 
 export class GameApplication {
     constructor() {
@@ -16,6 +17,7 @@ export class GameApplication {
         this.assetManager = new AssetManager(this.app.loader);
         this.sceneManager = new SceneManager(this.app.stage);
         this.wheelScene = null;
+        this.controller = null;
     }
 
     async start() {
@@ -24,11 +26,11 @@ export class GameApplication {
         const resources = await this.assetManager.load(AssetConfig);
 
         this.wheelScene = new WheelScene(resources, this.app.ticker, () => {
-            this.wheelScene.spinTo(5);
+            this.controller.onSpinPressed();
         });
-
+        this.controller = new GameController(this.wheelScene);
         this.sceneManager.show(this.wheelScene);
-
+        this.controller.boot();
         const onResize = () => {
             this.sceneManager.layoutScreen(this.app.screen.width, this.app.screen.height);
         };
