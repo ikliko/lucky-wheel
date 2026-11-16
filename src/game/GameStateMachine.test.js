@@ -23,8 +23,9 @@ describe('GameStateMachine', () => {
         expect(sm.isIdle).toBe(true);
     });
 
-    it('allows IDLE → SPINNING → SHOWING_WIN → IDLE', () => {
+    it('allows IDLE → REQUESTING_SPIN → SPINNING → SHOWING_WIN → IDLE', () => {
         const sm = new GameStateMachine(GameState.IDLE);
+        sm.transition(GameState.REQUESTING_SPIN);
         sm.transition(GameState.SPINNING);
         sm.transition(GameState.SHOWING_WIN);
         sm.transition(GameState.IDLE);

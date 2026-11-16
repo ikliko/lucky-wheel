@@ -52,7 +52,10 @@ describe('GameApi', () => {
     it('preserves HTTP status on API errors', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
             new Response(JSON.stringify({
-                message: 'Unauthorized',
+                error: {
+                    code: 'UNAUTHENTICATED',
+                    message: 'Unauthenticated.',
+                },
             }), {status: 401})
         ));
 
@@ -62,7 +65,8 @@ describe('GameApi', () => {
         await expect(api.getSession('123')).rejects.toMatchObject({
             name: 'GameApiError',
             status: 401,
-            code: 'HTTP_ERROR',
+            code: 'UNAUTHENTICATED',
+            message: 'Unauthenticated.',
         });
     });
 
@@ -119,5 +123,59 @@ describe('GameApi', () => {
 
         await vi.advanceTimersByTimeAsync(100);
         await assertion;
+    });
+
+    it('spins with body, bearer token, and Idempotency-Key', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({roundId: 'r1'}), {status: 200})
+        );
+
+        vi.stubGlobal('fetch', fetchMock);
+
+        const api = new GameApi('/api/game');
+        api.setAccessToken('test-token');
+
+        await api.spin(
+            {sessionId: 'session-1', betCents: 100},
+            'idem-1'
+        );
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            '/api/game/spin',
+            expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({
+                    sessionId: 'session-1',
+                    betCents: 100,
+                }),
+            })
+        );
+
+        const options = fetchMock.mock.calls[0][1];
+
+        expect(options.headers.Authorization).toBe('Bearer test-token');
+        expect(options.headers['Idempotency-Key']).toBe('idem-1');
+    });
+
+    it('maps nested error.message and error.code from 422 bodies', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({
+                error: {
+                    code: 'INSUFFICIENT_BALANCE',
+                    message: 'Balance is lower than bet.',
+                },
+            }), {status: 422})
+        ));
+
+        const api = new GameApi('/api/game');
+        api.setAccessToken('token');
+
+        await expect(
+            api.spin({sessionId: 'session-1', betCents: 100}, 'idem-1')
+        ).rejects.toMatchObject({
+            status: 422,
+            code: 'INSUFFICIENT_BALANCE',
+            message: 'Balance is lower than bet.',
+        });
     });
 });

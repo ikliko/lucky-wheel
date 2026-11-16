@@ -1,16 +1,33 @@
 export const GameState = {
     BOOTING: 'BOOTING',
     IDLE: 'IDLE',
+    REQUESTING_SPIN: 'REQUESTING_SPIN',
     SPINNING: 'SPINNING',
     SHOWING_WIN: 'SHOWING_WIN',
     ERROR: 'ERROR',
-}
+};
 
 const TRANSITIONS = {
-    [GameState.BOOTING]: [GameState.IDLE, GameState.ERROR],
-    [GameState.IDLE]: [GameState.SPINNING, GameState.ERROR],
-    [GameState.SPINNING]: [GameState.SHOWING_WIN, GameState.ERROR],
-    [GameState.SHOWING_WIN]: [GameState.IDLE, GameState.ERROR],
+    [GameState.BOOTING]: [
+        GameState.IDLE,
+        GameState.ERROR,
+    ],
+    [GameState.IDLE]: [
+        GameState.REQUESTING_SPIN,
+        GameState.ERROR,
+    ],
+    [GameState.REQUESTING_SPIN]: [
+        GameState.SPINNING,
+        GameState.ERROR,
+    ],
+    [GameState.SPINNING]: [
+        GameState.SHOWING_WIN,
+        GameState.ERROR,
+    ],
+    [GameState.SHOWING_WIN]: [
+        GameState.IDLE,
+        GameState.ERROR,
+    ],
     [GameState.ERROR]: [],
 };
 

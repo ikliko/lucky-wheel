@@ -47,32 +47,34 @@ export class GameController {
         this.#syncWalletUi();
     }
 
-
     async #runBaseSpin() {
-        let spinCompleted = false;
-        let betDebited = false;
-
         const betCents = this.betCents;
 
         try {
-            this.stateMachine.transition(GameState.SPINNING);
+            this.stateMachine.transition(GameState.REQUESTING_SPIN);
             this.#setBetLocked(true);
 
-            const sectorIndex = this.getSectorIndex();
-            const winCents = this.getWinCents(sectorIndex, betCents);
+            const idempotencyKey = crypto.randomUUID();
 
-            this.balanceCents -= betCents;
-            betDebited = true;
+            const round = await this.api.spin(
+                {sessionId: this.sessionId, betCents},
+                idempotencyKey
+            );
+
+            this.stateMachine.transition(GameState.SPINNING);
+
+            const sectorIndex = round.result.sectorIndex;
+            const winCents = round.winCents;
+
+            this.balanceCents = round.balanceAfterBetCents;
             this.#syncWalletUi();
 
             await this.wheelScene.spinTo(sectorIndex);
-            spinCompleted = true;
 
-            this.balanceCents += winCents;
+            this.balanceCents = round.balanceAfterRoundCents;
             this.#syncWalletUi();
 
             this.stateMachine.transition(GameState.SHOWING_WIN);
-
             await this.wheelScene.showWin(winCents);
 
             this.stateMachine.transition(GameState.IDLE);
@@ -81,27 +83,12 @@ export class GameController {
         } catch (error) {
             console.error('Spin failed:', error);
 
-            if (betDebited && !spinCompleted) {
-                this.balanceCents += betCents;
-                this.#syncWalletUi();
-            }
-
             if (this.stateMachine.canTransition(GameState.ERROR)) {
                 this.stateMachine.transition(GameState.ERROR);
             }
 
             this.#setBetLocked(true);
         }
-    }
-
-    getSectorIndex() {
-        return Math.floor(Math.random() * GameConfig.sectorCount);
-    }
-
-    getWinCents(sectorIndex, betCents) {
-        const multiplier = sectorIndex % 2 === 0 ? 0 : sectorIndex;
-
-        return betCents * multiplier;
     }
 
     #syncWalletUi() {

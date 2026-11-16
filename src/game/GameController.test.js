@@ -3,15 +3,25 @@ import {GameController} from '@/game/GameController.js';
 import {GameState, GameStateMachine} from '@/game/GameStateMachine.js';
 import {GameConfig} from '@/config/GameConfig.js';
 
-class MockGameController extends GameController {
-    getSectorIndex() {
-        return 5;
-    }
-
-    getWinCents(_sectorIndex) {
-        return 0;
-    }
-}
+const roundFixture = {
+    roundId: 'r1',
+    sessionId: 'session-1',
+    betCents: 100,
+    balanceBeforeCents: 100000,
+    balanceAfterBetCents: 99900,
+    balanceAfterRoundCents: 100000,
+    winCents: 100,
+    result: {
+        sectorId: 'sector_5',
+        sectorIndex: 5,
+        type: 'win',
+    },
+    plan: {
+        planNumber: 1,
+        spinNumber: 1,
+        spinsRemaining: 9,
+    },
+};
 
 function createWheelScene(spinToImpl = async () => {}) {
     return {
@@ -23,16 +33,29 @@ function createWheelScene(spinToImpl = async () => {}) {
     };
 }
 
+function createApi(spinImpl) {
+    return {
+        spin: vi.fn(spinImpl ?? (async () => roundFixture)),
+    };
+}
+
 function createController(spinToImpl = async () => {}, options = {}) {
     const wheelScene = createWheelScene(spinToImpl);
     const stateMachine = new GameStateMachine();
-    const controller = new MockGameController(wheelScene, stateMachine);
+    const api = options.api ?? createApi(options.spinImpl);
+
+    const controller = new GameController(wheelScene, stateMachine, {
+        api,
+        sessionId: options.sessionId ?? 'session-1',
+        balanceCents: options.balanceCents ?? GameConfig.initialBalanceCents,
+        betCents: options.betCents ?? GameConfig.defaultBetCents,
+    });
 
     if (options.boot !== false) {
         controller.boot();
     }
 
-    return {controller, wheelScene, stateMachine};
+    return {controller, wheelScene, stateMachine, api};
 }
 
 function createDeferred() {
@@ -69,11 +92,18 @@ describe('GameController', () => {
     });
 
     it('Start from IDLE runs exactly one spin', async () => {
-        const {controller, wheelScene, stateMachine} = createController();
+        const {controller, wheelScene, stateMachine, api} = createController();
 
         controller.onSpinPressed();
 
-        expect(wheelScene.spinTo).toHaveBeenCalledTimes(1);
+        await vi.waitFor(() => {
+            expect(wheelScene.spinTo).toHaveBeenCalledTimes(1);
+        });
+
+        expect(api.spin).toHaveBeenCalledWith(
+            {sessionId: 'session-1', betCents: GameConfig.defaultBetCents},
+            expect.any(String)
+        );
         expect(wheelScene.spinTo).toHaveBeenCalledWith(5);
 
         await vi.waitFor(() => {
@@ -88,8 +118,10 @@ describe('GameController', () => {
         controller.onSpinPressed();
         controller.onSpinPressed();
 
-        expect(wheelScene.spinTo).toHaveBeenCalledTimes(1);
-        expect(stateMachine.state).toBe(GameState.SPINNING);
+        await vi.waitFor(() => {
+            expect(wheelScene.spinTo).toHaveBeenCalledTimes(1);
+        });
+            expect(stateMachine.state).toBe(GameState.SPINNING);
 
         deferred.resolve();
 
@@ -100,13 +132,18 @@ describe('GameController', () => {
         expect(wheelScene.spinTo).toHaveBeenCalledTimes(1);
     });
 
-    it('transitions SPINNING → SHOWING_WIN → IDLE', async () => {
+    it('transitions REQUESTING_SPIN → SPINNING → SHOWING_WIN → IDLE', async () => {
         const deferred = createDeferred();
         const {controller, stateMachine} = createController(() => deferred.promise);
         const transitionSpy = vi.spyOn(stateMachine, 'transition');
 
         controller.onSpinPressed();
-        expect(stateMachine.state).toBe(GameState.SPINNING);
+
+        expect(stateMachine.state).toBe(GameState.REQUESTING_SPIN);
+
+        await vi.waitFor(() => {
+            expect(stateMachine.state).toBe(GameState.SPINNING);
+        });
 
         deferred.resolve();
 
@@ -115,6 +152,7 @@ describe('GameController', () => {
         });
 
         expect(transitionSpy.mock.calls.map(([state]) => state)).toEqual([
+            GameState.REQUESTING_SPIN,
             GameState.SPINNING,
             GameState.SHOWING_WIN,
             GameState.IDLE,
@@ -136,7 +174,7 @@ describe('GameController', () => {
             expect(stateMachine.state).toBe(GameState.SHOWING_WIN);
         });
 
-        expect(wheelScene.showWin).toHaveBeenCalledWith(0);
+        expect(wheelScene.showWin).toHaveBeenCalledWith(100);
         expect(stateMachine.state).toBe(GameState.SHOWING_WIN);
 
         winDeferred.resolve();
@@ -187,28 +225,12 @@ describe('GameController', () => {
 
         controller.onSpinPressed();
 
-        expect(wheelScene.spinTo).toHaveBeenCalledTimes(2);
+        await vi.waitFor(() => {
+            expect(wheelScene.spinTo).toHaveBeenCalledTimes(2);
+        });
 
         await vi.waitFor(() => {
             expect(stateMachine.state).toBe(GameState.IDLE);
-        });
-    });
-
-    it('debits bet locally when spin starts', async () => {
-        const deferred = createDeferred();
-        const {controller, wheelScene} = createController(() => deferred.promise);
-        const before = controller.balanceCents;
-        const bet = controller.betCents;
-
-        controller.onSpinPressed();
-
-        expect(controller.balanceCents).toBe(before - bet);
-        expect(wheelScene.setBalance).toHaveBeenCalledWith(before - bet);
-
-        deferred.resolve();
-
-        await vi.waitFor(() => {
-            expect(controller.stateMachine.state).toBe(GameState.IDLE);
         });
     });
 
@@ -302,33 +324,7 @@ describe('GameController', () => {
         }
     });
 
-    it('credits winCents after spin and passes it to showWin', async () => {
-        class WinningController extends MockGameController {
-            getWinCents() {
-                return 250;
-            }
-        }
-
-        const wheelScene = createWheelScene();
-        const stateMachine = new GameStateMachine();
-        const controller = new WinningController(wheelScene, stateMachine);
-        controller.boot();
-
-        const before = controller.balanceCents;
-        const bet = controller.betCents;
-
-        controller.onSpinPressed();
-
-        await vi.waitFor(() => {
-            expect(stateMachine.state).toBe(GameState.IDLE);
-        });
-
-        expect(controller.balanceCents).toBe(before - bet + 250);
-        expect(wheelScene.showWin).toHaveBeenCalledWith(250);
-        expect(wheelScene.setBalance).toHaveBeenCalledWith(before - bet + 250);
-    });
-
-    it('calls showWin with 0 when there is no win', async () => {
+    it('applies server balances and passes winCents to showWin', async () => {
         const {controller, wheelScene, stateMachine} = createController();
 
         controller.onSpinPressed();
@@ -337,21 +333,43 @@ describe('GameController', () => {
             expect(stateMachine.state).toBe(GameState.IDLE);
         });
 
-        expect(wheelScene.showWin).toHaveBeenCalledWith(0);
+        expect(controller.balanceCents).toBe(100000);
+        expect(wheelScene.setBalance).toHaveBeenCalledWith(99900);
+        expect(wheelScene.setBalance).toHaveBeenCalledWith(100000);
+        expect(wheelScene.showWin).toHaveBeenCalledWith(100);
+        expect(wheelScene.spinTo).toHaveBeenCalledWith(5);
     });
 
+    it('calls showWin with 0 when server winCents is 0', async () => {
+        const {controller, wheelScene, stateMachine} = createController(
+            async () => {},
+            {
+                spinImpl: async () => ({
+                    ...roundFixture,
+                    winCents: 0,
+                    balanceAfterRoundCents: 99900,
+                }),
+            }
+        );
 
-    it('restores demo bet when wheel animation fails', async () => {
+        controller.onSpinPressed();
+
+        await vi.waitFor(() => {
+            expect(stateMachine.state).toBe(GameState.IDLE);
+        });
+
+        expect(wheelScene.showWin).toHaveBeenCalledWith(0);
+        expect(controller.balanceCents).toBe(99900);
+    });
+
+    it('keeps server balanceAfterBetCents when animation fails', async () => {
         const {controller, stateMachine} = createController(
             async () => {
                 throw new Error('Animation failed');
             }
         );
 
-        const before = controller.balanceCents;
-
-        const errorSpy = vi.spyOn(console, 'error')
-            .mockImplementation(() => {});
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
         try {
             controller.onSpinPressed();
@@ -360,38 +378,18 @@ describe('GameController', () => {
                 expect(stateMachine.state).toBe(GameState.ERROR);
             });
 
-            expect(controller.balanceCents).toBe(before);
+            expect(controller.balanceCents).toBe(99900);
         } finally {
             errorSpy.mockRestore();
         }
     });
 
-    it('keeps settled win if win presentation fails', async () => {
-        class WinningController extends MockGameController {
-            getWinCents() {
-                return 250;
-            }
-        }
+    it('keeps balanceAfterRoundCents if win presentation fails', async () => {
+        const {controller, wheelScene, stateMachine} = createController();
 
-        const wheelScene = createWheelScene();
-        const stateMachine = new GameStateMachine();
+        wheelScene.showWin.mockRejectedValue(new Error('Presentation failed'));
 
-        const controller = new WinningController(
-            wheelScene,
-            stateMachine
-        );
-
-        controller.boot();
-
-        const before = controller.balanceCents;
-        const bet = controller.betCents;
-
-        wheelScene.showWin.mockRejectedValue(
-            new Error('Presentation failed')
-        );
-
-        const errorSpy = vi.spyOn(console, 'error')
-            .mockImplementation(() => {});
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
         try {
             controller.onSpinPressed();
@@ -400,13 +398,36 @@ describe('GameController', () => {
                 expect(stateMachine.state).toBe(GameState.ERROR);
             });
 
-            expect(controller.balanceCents).toBe(
-                before - bet + 250
-            );
+            expect(controller.balanceCents).toBe(100000);
+            expect(wheelScene.showWin).toHaveBeenCalledWith(100);
+            expect(wheelScene.setBetEnabled).toHaveBeenLastCalledWith(false);
+        } finally {
+            errorSpy.mockRestore();
+        }
+    });
 
-            expect(wheelScene.showWin).toHaveBeenCalledWith(250);
-            expect(wheelScene.setBetEnabled)
-                .toHaveBeenLastCalledWith(false);
+    it('does not spin when API rejects', async () => {
+        const {controller, wheelScene, stateMachine} = createController(
+            async () => {},
+            {
+                spinImpl: async () => {
+                    throw new Error('API failed');
+                },
+            }
+        );
+
+        const before = controller.balanceCents;
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        try {
+            controller.onSpinPressed();
+
+            await vi.waitFor(() => {
+                expect(stateMachine.state).toBe(GameState.ERROR);
+            });
+
+            expect(wheelScene.spinTo).not.toHaveBeenCalled();
+            expect(controller.balanceCents).toBe(before);
         } finally {
             errorSpy.mockRestore();
         }

@@ -1,4 +1,3 @@
-
 import {GameApiError} from '@/api/GameApiError.js';
 
 export class GameApi {
@@ -33,6 +32,25 @@ export class GameApi {
             'GET',
             `/session/${encodeURIComponent(sessionId)}`
         );
+    }
+
+    async spin({sessionId, betCents}, idempotencyKey) {
+        if (typeof sessionId !== 'string' || !sessionId) {
+            throw new GameApiError('Invalid session ID', {code: 'INVALID_SESSION_ID'});
+        }
+
+        if (!Number.isSafeInteger(betCents) || betCents < 1) {
+            throw new GameApiError('Invalid bet', {code: 'INVALID_BET'});
+        }
+
+        if (typeof idempotencyKey !== 'string' || !idempotencyKey) {
+            throw new GameApiError('Invalid idempotency key', {code: 'INVALID_IDEMPOTENCY_KEY'});
+        }
+
+        return this.#request('POST', '/spin', {
+            body: {sessionId, betCents},
+            headers: {'Idempotency-Key': idempotencyKey},
+        });
     }
 
     async #request(method, path, {
@@ -99,10 +117,10 @@ export class GameApi {
 
             if (!response.ok) {
                 throw new GameApiError(
-                    data?.message || `HTTP ${response.status}`,
+                    data?.error?.message || data?.message || `HTTP ${response.status}`,
                     {
                         status: response.status,
-                        code: 'HTTP_ERROR',
+                        code: data?.error?.code || 'HTTP_ERROR',
                         body: data,
                     }
                 );
