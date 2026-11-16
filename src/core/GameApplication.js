@@ -25,9 +25,14 @@ export class GameApplication {
 
         const resources = await this.assetManager.load(AssetConfig);
 
-        this.wheelScene = new WheelScene(resources, this.app.ticker, () => {
-            this.controller.onSpinPressed();
-        });
+        this.wheelScene = new WheelScene(
+            resources,
+            this.app.ticker,
+            () => {
+                this.controller.onSpinPressed();
+            },
+            bet => this.controller.onBetSelected(bet)
+        );
         this.controller = new GameController(this.wheelScene);
         this.sceneManager.show(this.wheelScene);
         this.controller.boot();
