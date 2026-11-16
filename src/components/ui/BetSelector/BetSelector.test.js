@@ -2,16 +2,21 @@ import {describe, it, expect, vi} from 'vitest';
 import {BetSelector} from '@/components/ui/BetSelector/BetSelector.js';
 import {GameConfig} from '@/config/GameConfig.js';
 
+function createSelector(onSelect = vi.fn(), allowed = GameConfig.allowedBetsCents) {
+    return {
+        onSelect,
+        selector: new BetSelector(GameConfig.quickBetsCents, onSelect, allowed),
+    };
+}
+
 describe('BetSelector', () => {
     it('starts with the first quick bet selected by default', () => {
-        const selector = new BetSelector(GameConfig.quickBetsCents, vi.fn());
-
+        const {selector} = createSelector();
         expect(selector.selectedBetCents).toBe(GameConfig.quickBetsCents[0]);
     });
 
     it('selectBet notifies onSelect with the bet amount', () => {
-        const onSelect = vi.fn();
-        const selector = new BetSelector(GameConfig.quickBetsCents, onSelect);
+        const {selector, onSelect} = createSelector();
 
         selector.selectBet(200);
 
@@ -21,8 +26,7 @@ describe('BetSelector', () => {
     });
 
     it('setSelected updates selection without calling onSelect', () => {
-        const onSelect = vi.fn();
-        const selector = new BetSelector(GameConfig.quickBetsCents, onSelect);
+        const {selector, onSelect} = createSelector();
 
         selector.setSelected(500);
 
@@ -31,8 +35,7 @@ describe('BetSelector', () => {
     });
 
     it('ignores selectBet for amounts not in allowedBetsCents', () => {
-        const onSelect = vi.fn();
-        const selector = new BetSelector(GameConfig.quickBetsCents, onSelect);
+        const {selector, onSelect} = createSelector();
         const before = selector.selectedBetCents;
 
         selector.selectBet(123);
@@ -42,8 +45,7 @@ describe('BetSelector', () => {
     });
 
     it('setEnabled(false) blocks selectBet notifications', () => {
-        const onSelect = vi.fn();
-        const selector = new BetSelector(GameConfig.quickBetsCents, onSelect);
+        const {selector, onSelect} = createSelector();
 
         selector.setEnabled(false);
         selector.selectBet(200);
@@ -53,8 +55,7 @@ describe('BetSelector', () => {
     });
 
     it('setEnabled(true) allows selectBet again', () => {
-        const onSelect = vi.fn();
-        const selector = new BetSelector(GameConfig.quickBetsCents, onSelect);
+        const {selector, onSelect} = createSelector();
 
         selector.setEnabled(false);
         selector.setEnabled(true);
@@ -65,13 +66,7 @@ describe('BetSelector', () => {
     });
 
     it('accepts non-quick allowed bet amounts', () => {
-        const onSelect = vi.fn();
-
-        const selector = new BetSelector(
-            GameConfig.quickBetsCents,
-            onSelect,
-            GameConfig.allowedBetsCents
-        );
+        const {selector, onSelect} = createSelector();
 
         selector.selectBet(150);
 

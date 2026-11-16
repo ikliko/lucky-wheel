@@ -23,6 +23,30 @@ const roundFixture = {
     },
 };
 
+const freeSpinsResults = [
+    {sectorId: 'sector_5', sectorIndex: 5, type: 'win', awardedAdditionalSpins: 0, winCents: 100},
+    {sectorId: 'sector_1', sectorIndex: 1, type: 'lose', awardedAdditionalSpins: 0, winCents: 0},
+    {sectorId: 'sector_13', sectorIndex: 13, type: 'win', awardedAdditionalSpins: 0, winCents: 600},
+];
+
+const freeSpinsRoundFixture = {
+    ...roundFixture,
+    roundId: 'r-fs',
+    balanceAfterRoundCents: 100600,
+    winCents: 700,
+    result: {
+        sectorId: 'sector_7',
+        sectorIndex: 7,
+        type: 'free_spins',
+        winCents: 700,
+        freeSpins: {
+            retriggered: false,
+            totalWinCents: 700,
+            results: freeSpinsResults,
+        },
+    },
+};
+
 function createWheelScene(spinToImpl = async () => {}) {
     return {
         spinTo: vi.fn(spinToImpl),
@@ -30,6 +54,11 @@ function createWheelScene(spinToImpl = async () => {}) {
         setBalance: vi.fn(),
         setBet: vi.fn(),
         setBetEnabled: vi.fn(),
+        setSpinButtonVisible: vi.fn(),
+        setFreeSpinsRemaining: vi.fn(),
+        setAccumulatedWin: vi.fn(),
+        clearAccumulatedWin: vi.fn(),
+        showBonus: vi.fn(async () => {}),
     };
 }
 
@@ -431,6 +460,48 @@ describe('GameController', () => {
         } finally {
             errorSpy.mockRestore();
         }
+    });
+
+    it('auto-plays freeSpins batch, accumulates win, then hides it', async () => {
+        const {controller, wheelScene, stateMachine} = createController(async () => {}, {
+            spinImpl: async () => freeSpinsRoundFixture,
+        });
+
+        controller.onSpinPressed();
+
+        await vi.waitFor(() => {
+            expect(stateMachine.state).toBe(GameState.IDLE);
+        });
+
+        expect(wheelScene.spinTo.mock.calls.map(([i]) => i)).toEqual([7, 5, 1, 13]);
+        expect(wheelScene.setAccumulatedWin.mock.calls.map(([c]) => c)).toEqual([
+            0, 100, 100, 700,
+        ]);
+        expect(wheelScene.showWin).toHaveBeenCalledWith(700);
+        expect(wheelScene.clearAccumulatedWin).toHaveBeenCalled();
+        expect(controller.balanceCents).toBe(100600);
+    });
+
+
+    it('keeps bet locked through free spins', async () => {
+        const spinDeferred = createDeferred();
+        const {controller, wheelScene} = createController(() => spinDeferred.promise, {
+            spinImpl: async () => freeSpinsRoundFixture,
+        });
+
+        controller.onSpinPressed();
+
+        await vi.waitFor(() => {
+            expect(wheelScene.setBetEnabled).toHaveBeenCalledWith(false);
+        });
+
+        spinDeferred.resolve();
+
+        await vi.waitFor(() => {
+            expect(controller.stateMachine.state).toBe(GameState.IDLE);
+        });
+
+        expect(wheelScene.setBetEnabled).toHaveBeenLastCalledWith(true);
     });
 });
 

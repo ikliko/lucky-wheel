@@ -3,6 +3,8 @@ export const GameState = {
     IDLE: 'IDLE',
     REQUESTING_SPIN: 'REQUESTING_SPIN',
     SPINNING: 'SPINNING',
+    FREE_SPINS: 'FREE_SPINS',
+    BONUS: 'BONUS',
     SHOWING_WIN: 'SHOWING_WIN',
     ERROR: 'ERROR',
 };
@@ -21,6 +23,17 @@ const TRANSITIONS = {
         GameState.ERROR,
     ],
     [GameState.SPINNING]: [
+        GameState.FREE_SPINS,
+        GameState.SHOWING_WIN,
+        GameState.ERROR,
+    ],
+    [GameState.FREE_SPINS]: [
+        GameState.BONUS,
+        GameState.SHOWING_WIN,
+        GameState.ERROR,
+    ],
+    [GameState.BONUS]: [
+        GameState.FREE_SPINS,
         GameState.SHOWING_WIN,
         GameState.ERROR,
     ],

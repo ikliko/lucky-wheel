@@ -131,4 +131,38 @@ describe('WinDisplay', () => {
         const display = new WinDisplay({durationMs: 0});
         await expect(display.show(0)).resolves.toBeUndefined();
     });
+
+    it('hold keeps win visible until clear', () => {
+        const display = new WinDisplay({durationMs: 1000});
+
+        display.hold(250);
+        expect(display.visible).toBe(true);
+        expect(display.text).toBe('€2.50');
+
+        display.hold(500);
+        expect(display.text).toBe('€5.00');
+
+        display.clear();
+        expect(display.visible).toBe(false);
+        expect(display.text).toBe('');
+    });
+
+    it('clear does not interrupt an active show', async () => {
+        vi.useFakeTimers();
+
+        try {
+            const display = new WinDisplay({durationMs: 1000});
+            const presentation = display.show(100);
+
+            display.clear();
+            expect(display.visible).toBe(true);
+
+            await vi.advanceTimersByTimeAsync(1000);
+            await presentation;
+
+            expect(display.visible).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });

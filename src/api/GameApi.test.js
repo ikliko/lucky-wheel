@@ -1,6 +1,33 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {GameApi} from '@/api/GameApi.js';
 
+function jsonResponse(body, status = 200) {
+    return new Response(
+        typeof body === 'string' ? body : JSON.stringify(body),
+        {status}
+    );
+}
+
+function stubFetch(impl) {
+    const fetchMock = typeof impl === 'function'
+        ? vi.fn(impl)
+        : vi.fn().mockResolvedValue(impl);
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+}
+
+function createApi(token = null, options = {}) {
+    const api = new GameApi('/api/game', options);
+    if (token) {
+        api.setAccessToken(token);
+    }
+    return api;
+}
+
+function lastOptions(fetchMock) {
+    return fetchMock.mock.calls[0][1];
+}
+
 describe('GameApi', () => {
     afterEach(() => {
         vi.unstubAllGlobals();
@@ -8,170 +35,102 @@ describe('GameApi', () => {
     });
 
     it('creates a session without Authorization', async () => {
-        const fetchMock = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify({session: {id: '123'}}), {
-                status: 201,
-            })
-        );
+        const fetchMock = stubFetch(jsonResponse({session: {id: '123'}}, 201));
 
-        vi.stubGlobal('fetch', fetchMock);
-
-        const api = new GameApi('/api/game');
-        await api.createSession();
+        await createApi().createSession();
 
         expect(fetchMock).toHaveBeenCalledWith(
             '/api/game/session',
-            expect.objectContaining({
-                method: 'POST',
-            })
+            expect.objectContaining({method: 'POST'})
         );
-
-        const options = fetchMock.mock.calls[0][1];
-
-        expect(options.headers.Authorization).toBeUndefined();
+        expect(lastOptions(fetchMock).headers.Authorization).toBeUndefined();
     });
 
     it('sends bearer token for protected requests', async () => {
-        const fetchMock = vi.fn().mockResolvedValue(
-            new Response('{}', {status: 200})
-        );
+        const fetchMock = stubFetch(jsonResponse({}));
 
-        vi.stubGlobal('fetch', fetchMock);
+        await createApi('test-token').getSession('test-session');
 
-        const api = new GameApi('/api/game');
-        api.setAccessToken('test-token');
-
-        await api.getSession('test-session');
-
-        const options = fetchMock.mock.calls[0][1];
-
-        expect(options.headers.Authorization)
+        expect(lastOptions(fetchMock).headers.Authorization)
             .toBe('Bearer test-token');
     });
 
     it('preserves HTTP status on API errors', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-            new Response(JSON.stringify({
-                error: {
-                    code: 'UNAUTHENTICATED',
-                    message: 'Unauthenticated.',
-                },
-            }), {status: 401})
-        ));
+        stubFetch(jsonResponse({
+            error: {code: 'UNAUTHENTICATED', message: 'Unauthenticated.'},
+        }, 401));
 
-        const api = new GameApi('/api/game');
-        api.setAccessToken('invalid-token');
-
-        await expect(api.getSession('123')).rejects.toMatchObject({
-            name: 'GameApiError',
-            status: 401,
-            code: 'UNAUTHENTICATED',
-            message: 'Unauthenticated.',
-        });
+        await expect(createApi('invalid-token').getSession('123'))
+            .rejects.toMatchObject({
+                name: 'GameApiError',
+                status: 401,
+                code: 'UNAUTHENTICATED',
+                message: 'Unauthenticated.',
+            });
     });
 
     it('rejects malformed JSON with a typed error', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-            new Response('<html>Server error</html>', {
+        stubFetch(jsonResponse('<html>Server error</html>', 502));
+
+        await expect(createApi('token').getSession('123'))
+            .rejects.toMatchObject({
                 status: 502,
-            })
-        ));
-
-        const api = new GameApi('/api/game');
-        api.setAccessToken('token');
-
-        await expect(api.getSession('123')).rejects.toMatchObject({
-            status: 502,
-            code: 'INVALID_RESPONSE',
-        });
+                code: 'INVALID_RESPONSE',
+            });
     });
 
     it('handles network failures', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(
-            new TypeError('Failed to fetch')
-        ));
+        stubFetch(() => Promise.reject(new TypeError('Failed to fetch')));
 
-        const api = new GameApi('/api/game');
-
-        await expect(api.createSession()).rejects.toMatchObject({
-            code: 'NETWORK_ERROR',
-        });
+        await expect(createApi().createSession())
+            .rejects.toMatchObject({code: 'NETWORK_ERROR'});
     });
 
     it('handles request timeout', async () => {
         vi.useFakeTimers();
 
-        vi.stubGlobal('fetch', vi.fn((_url, options) =>
-            new Promise((_resolve, reject) => {
-                options.signal.addEventListener('abort', () => {
-                    reject(new DOMException(
-                        'Aborted',
-                        'AbortError'
-                    ));
-                });
-            })
-        ));
+        stubFetch((_url, options) => new Promise((_resolve, reject) => {
+            options.signal.addEventListener('abort', () => {
+                reject(new DOMException('Aborted', 'AbortError'));
+            });
+        }));
 
-        const api = new GameApi('/api/game', {
-            timeoutMs: 100,
-        });
-
-        const request = api.createSession();
-        const assertion = expect(request).rejects.toMatchObject({
-            code: 'TIMEOUT',
-        });
+        const request = createApi(null, {timeoutMs: 100}).createSession();
+        const assertion = expect(request).rejects.toMatchObject({code: 'TIMEOUT'});
 
         await vi.advanceTimersByTimeAsync(100);
         await assertion;
     });
 
     it('spins with body, bearer token, and Idempotency-Key', async () => {
-        const fetchMock = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify({roundId: 'r1'}), {status: 200})
-        );
+        const fetchMock = stubFetch(jsonResponse({roundId: 'r1'}));
+        const spinBody = {sessionId: 'session-1', betCents: 100};
 
-        vi.stubGlobal('fetch', fetchMock);
-
-        const api = new GameApi('/api/game');
-        api.setAccessToken('test-token');
-
-        await api.spin(
-            {sessionId: 'session-1', betCents: 100},
-            'idem-1'
-        );
+        await createApi('test-token').spin(spinBody, 'idem-1');
 
         expect(fetchMock).toHaveBeenCalledWith(
             '/api/game/spin',
             expect.objectContaining({
                 method: 'POST',
-                body: JSON.stringify({
-                    sessionId: 'session-1',
-                    betCents: 100,
-                }),
+                body: JSON.stringify(spinBody),
             })
         );
 
-        const options = fetchMock.mock.calls[0][1];
-
-        expect(options.headers.Authorization).toBe('Bearer test-token');
-        expect(options.headers['Idempotency-Key']).toBe('idem-1');
+        const headers = lastOptions(fetchMock).headers;
+        expect(headers.Authorization).toBe('Bearer test-token');
+        expect(headers['Idempotency-Key']).toBe('idem-1');
     });
 
     it('maps nested error.message and error.code from 422 bodies', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-            new Response(JSON.stringify({
-                error: {
-                    code: 'INSUFFICIENT_BALANCE',
-                    message: 'Balance is lower than bet.',
-                },
-            }), {status: 422})
-        ));
-
-        const api = new GameApi('/api/game');
-        api.setAccessToken('token');
+        stubFetch(jsonResponse({
+            error: {
+                code: 'INSUFFICIENT_BALANCE',
+                message: 'Balance is lower than bet.',
+            },
+        }, 422));
 
         await expect(
-            api.spin({sessionId: 'session-1', betCents: 100}, 'idem-1')
+            createApi('token').spin({sessionId: 'session-1', betCents: 100}, 'idem-1')
         ).rejects.toMatchObject({
             status: 422,
             code: 'INSUFFICIENT_BALANCE',

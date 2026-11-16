@@ -43,4 +43,21 @@ describe('GameStateMachine', () => {
         expect(sm.canTransition(GameState.IDLE)).toBe(false);
         expect(() => sm.transition(GameState.IDLE)).toThrow();
     });
+
+    it('allows SPINNING → FREE_SPINS → SHOWING_WIN → IDLE', () => {
+        const sm = new GameStateMachine(GameState.IDLE);
+        sm.transition(GameState.REQUESTING_SPIN);
+        sm.transition(GameState.SPINNING);
+        sm.transition(GameState.FREE_SPINS);
+        sm.transition(GameState.SHOWING_WIN);
+        sm.transition(GameState.IDLE);
+        expect(sm.state).toBe(GameState.IDLE);
+    });
+
+    it('allows FREE_SPINS ↔ BONUS', () => {
+        const sm = new GameStateMachine(GameState.FREE_SPINS);
+        sm.transition(GameState.BONUS);
+        sm.transition(GameState.FREE_SPINS);
+        expect(sm.state).toBe(GameState.FREE_SPINS);
+    });
 });

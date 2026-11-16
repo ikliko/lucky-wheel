@@ -5,6 +5,7 @@ export const GameConfig = {
     arrowLocalOverlap: 16,
     startLocalDiameter: 120,
     sectorCount: 18,
+    freeSpinsAward: 3,
     sectors: [
         {id: 'sector_0',  type: 'lose',       label: 'LOSE',       multiplier: 0},
         {id: 'sector_1',  type: 'lose',       label: 'LOSE',       multiplier: 0}, // A

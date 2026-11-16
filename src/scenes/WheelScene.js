@@ -1,3 +1,4 @@
+import * as PIXI from 'pixi.js';
 import {Wheel} from '@/components/wheel/Wheel.js';
 import {WheelPointer} from '@/components/wheel/WheelPointer.js';
 import {SpinButton} from '@/components/ui/SpinButton/SpinButton.js';
@@ -33,6 +34,7 @@ export class WheelScene extends BaseScene {
         this.betView = null;
         this.winDisplay = null;
         this.winView = null;
+        this.freeSpinsLabel = null;
     }
 
     create() {
@@ -62,13 +64,24 @@ export class WheelScene extends BaseScene {
         this.winView = new WinDisplayView(this.winDisplay);
         this.winView.position.set(0, -GameConfig.wheelRadius - 50);
 
+        this.freeSpinsLabel = new PIXI.Text('', {
+            fill: 0xffffff,
+            fontSize: 36,
+            fontWeight: '700',
+        });
+        this.freeSpinsLabel.anchor.set(0.5);
+        this.freeSpinsLabel.position.set(0, -GameConfig.wheelRadius - 100);
+        this.freeSpinsLabel.visible = false;
+
         this.addChild(this.wheel);
         this.addChild(this.pointer);
         this.addChild(this.spinButton);
         this.addChild(this.balanceView);
         this.addChild(this.betView);
         this.addChild(this.winView);
+        this.addChild(this.freeSpinsLabel);
 
+        this.setSpinButtonVisible(true);
         this.#created = true;
     }
 
@@ -96,6 +109,51 @@ export class WheelScene extends BaseScene {
         this.betView?.sync();
     }
 
+    setSpinButtonVisible(visible) {
+        if (!this.spinButton) {
+            return;
+        }
+
+        this.spinButton.visible = visible;
+        this.spinButton.interactive = visible;
+        this.spinButton.buttonMode = visible;
+    }
+
+    setFreeSpinsRemaining(remaining) {
+        if (!this.freeSpinsLabel) {
+            return;
+        }
+
+        if (!remaining || remaining < 1) {
+            this.freeSpinsLabel.visible = false;
+            this.freeSpinsLabel.text = '';
+            return;
+        }
+
+        this.freeSpinsLabel.text = remaining === 1
+            ? '1 Free Spin left'
+            : `${remaining} Free Spins left`;
+        this.freeSpinsLabel.visible = true;
+    }
+
+    setAccumulatedWin(cents) {
+        if (!this.winDisplay) {
+            return;
+        }
+
+        this.winDisplay.hold(cents);
+        this.winView?.sync();
+    }
+
+    clearAccumulatedWin() {
+        if (!this.winDisplay) {
+            return;
+        }
+
+        this.winDisplay.clear();
+        this.winView?.sync();
+    }
+
     async showWin(cents) {
         if (!this.winDisplay) {
             throw new Error('WinDisplay is not initialized');
@@ -112,10 +170,16 @@ export class WheelScene extends BaseScene {
         }
     }
 
+    /** L replaces this with BonusScene presentation. */
+    async showBonus(entry) {
+        void entry;
+    }
+
     onExit() {
         this.animator?.cancel();
         this.winDisplay?.cancel();
         this.winView?.sync();
+        this.setFreeSpinsRemaining(null);
 
         super.onExit();
     }

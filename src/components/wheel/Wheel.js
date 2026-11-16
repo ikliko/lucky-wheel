@@ -7,6 +7,7 @@ export class Wheel extends PIXI.Container {
     constructor() {
         super();
 
+        this.currentBetCents = GameConfig.defaultBetCents;
         this.geometry = new WheelGeometry(GameConfig.sectorCount);
         this.rotator = new PIXI.Container();
         this.sectorsLayer = new PIXI.Graphics();
@@ -21,22 +22,35 @@ export class Wheel extends PIXI.Container {
             this.labelsLayer.addChild(sector.createLabel());
         })
 
-        this.#drawRim(this.sectorsLayer)
+        this.#drawRim(this.sectorsLayer);
 
-        this.rotator.addChild(this.sectorsLayer)
-        this.rotator.addChild(this.labelsLayer)
+        this.rotator.addChild(this.sectorsLayer);
+        this.rotator.addChild(this.labelsLayer);
         this.addChild(this.rotator);
     }
 
     setBetCents(betCents) {
-        this.labelsLayer.removeChildren().forEach((c) => c.destroy({children: true}));
-        this.sectors.forEach((sector) => {
-            this.labelsLayer.addChild(sector.createLabel(betCents));
+        if (this.currentBetCents === betCents) {
+            return;
+        }
+
+        this.currentBetCents = betCents;
+
+        const oldLabels = this.labelsLayer.removeChildren();
+
+        oldLabels.forEach(label => {
+            label.destroy({children: true});
+        });
+
+        this.sectors.forEach(sector => {
+            this.labelsLayer.addChild(
+                sector.createLabel(betCents)
+            );
         });
     }
 
     #drawRim(sectorsLayer) {
         sectorsLayer.lineStyle(GameConfig.rimWidth, GameConfig.colors.rim);
-        sectorsLayer.drawCircle(0, 0, GameConfig.wheelRadius)
+        sectorsLayer.drawCircle(0, 0, GameConfig.wheelRadius);
     }
 }

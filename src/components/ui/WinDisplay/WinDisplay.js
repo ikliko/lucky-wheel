@@ -11,6 +11,7 @@ export class WinDisplay {
         this.visible = false;
     }
 
+    /** Timed end-of-round presentation; hides after durationMs. */
     show(winCents) {
         if (this.#destroyed) {
             return Promise.reject(
@@ -42,6 +43,30 @@ export class WinDisplay {
                 resolve();
             }, this.durationMs);
         });
+    }
+
+    /** Keep win visible during FreeSpins accumulation (no timer). */
+    hold(winCents) {
+        if (this.#destroyed) {
+            return;
+        }
+
+        if (this.#rejectPending) {
+            this.cancel();
+        }
+
+        this.text = MoneyFormatter.formatCents(winCents);
+        this.visible = true;
+    }
+
+    /** Hide a held win. No-op while a timed show() is running. */
+    clear() {
+        if (this.#destroyed || this.#rejectPending) {
+            return;
+        }
+
+        this.text = '';
+        this.visible = false;
     }
 
     cancel() {
