@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import {GameConfig} from "@/config/GameConfig.js";
+import {MoneyFormatter} from "@/utils/MoneyFormatter.js";
 
 export class WheelSector {
     constructor(index, definition, geometry) {
@@ -32,19 +33,47 @@ export class WheelSector {
         graphics.lineTo(Math.cos(a1) * r, Math.sin(a1) * r);
     }
 
-    createLabel() {
-        const mid = this.geometry.midAngle(this.index)
-        const labelRadius = GameConfig.wheelRadius * GameConfig.labelRadiusRatio
-        const text = new PIXI.Text(this.definition.label, {
-            fill: 0xffffff,
-            fontSize: 26,
-            fontWeight: '700',
-        })
+    createLabel(betCents = GameConfig.defaultBetCents) {
+        const mid = this.geometry.midAngle(this.index);
+        const halfSweep = this.geometry.sweep / 2;
+        const outer = GameConfig.wheelRadius * 0.88;
+        const inner = GameConfig.wheelRadius * 0.50;
+        const root = new PIXI.Container();
 
-        text.anchor.set(0.5)
-        text.position.set(Math.cos(mid) * labelRadius, Math.sin(mid) * labelRadius)
-        text.rotation = mid + Math.PI / 2
+        const chars = [...this.#displayText(betCents)].filter((ch) => ch !== ' ');
+        if (chars.length === 0) {
+            return root;
+        }
 
-        return text
+        chars.forEach((ch, i) => {
+            const t = chars.length === 1 ? 0 : i / (chars.length - 1);
+            const radius = outer - t * (outer - inner);
+            const maxWidth = 2 * radius * Math.sin(halfSweep) * 0.55;
+            const fontSize = Math.max(10, Math.min(36, maxWidth));
+
+            const text = new PIXI.Text(ch, {
+                fill: 0xffffff,
+                fontSize,
+                fontWeight: '700',
+                stroke: 0x000000,
+                strokeThickness: Math.max(2, fontSize * 0.14),
+            });
+
+            text.anchor.set(0.5);
+            text.position.set(Math.cos(mid) * radius, Math.sin(mid) * radius);
+            text.rotation = mid + Math.PI / 2;
+            root.addChild(text);
+        });
+
+        return root;
+    }
+
+    #displayText(betCents) {
+        const {type, multiplier, rimLabel, label} = this.definition;
+        if (type === 'win') {
+            const winCents = Math.round(betCents * multiplier);
+            return MoneyFormatter.formatCents(winCents); // e.g. €0.50
+        }
+        return rimLabel || label || '';
     }
 }

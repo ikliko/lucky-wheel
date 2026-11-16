@@ -12,14 +12,9 @@ export class Wheel extends PIXI.Container {
         this.sectorsLayer = new PIXI.Graphics();
         this.labelsLayer = new PIXI.Container();
 
-        // TODO: API MOCK - to be deleted
-        const sectors = Array.from({length: 18}, (_, i) => ({
-            id: `sector_${i}`,
-            label: i % 2 === 0 ? 'LOSE' : `×${i}`,
-        }));
-        this.sectors = sectors.map((sector, i) => (
-            new WheelSector(i, sector, this.geometry)
-        ))
+        this.sectors = GameConfig.sectors.map(
+            (sector, i) => new WheelSector(i, sector, this.geometry)
+        );
 
         this.sectors.forEach(sector => {
             sector.draw(this.sectorsLayer)
@@ -31,6 +26,13 @@ export class Wheel extends PIXI.Container {
         this.rotator.addChild(this.sectorsLayer)
         this.rotator.addChild(this.labelsLayer)
         this.addChild(this.rotator);
+    }
+
+    setBetCents(betCents) {
+        this.labelsLayer.removeChildren().forEach((c) => c.destroy({children: true}));
+        this.sectors.forEach((sector) => {
+            this.labelsLayer.addChild(sector.createLabel(betCents));
+        });
     }
 
     #drawRim(sectorsLayer) {

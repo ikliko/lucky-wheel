@@ -88,6 +88,7 @@ export class WheelScene extends BaseScene {
     setBet(cents) {
         this.betSelector.setSelected(cents);
         this.betView?.sync();
+        this.wheel.setBetCents(cents);
     }
 
     setBetEnabled(enabled) {
