@@ -2,11 +2,18 @@ import {GameState, GameStateMachine} from '@/game/GameStateMachine.js';
 import {GameConfig} from '@/config/GameConfig.js';
 
 export class GameController {
-    constructor(wheelScene, stateMachine = new GameStateMachine()) {
+    constructor(wheelScene, stateMachine = new GameStateMachine(), {
+        api = null,
+        sessionId = null,
+        balanceCents = GameConfig.initialBalanceCents,
+        betCents = GameConfig.defaultBetCents,
+    } = {}) {
         this.wheelScene = wheelScene;
         this.stateMachine = stateMachine;
-        this.balanceCents = GameConfig.initialBalanceCents;
-        this.betCents = GameConfig.defaultBetCents;
+        this.api = api;
+        this.sessionId = sessionId;
+        this.balanceCents = balanceCents;
+        this.betCents = betCents;
     }
 
     boot() {
