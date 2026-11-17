@@ -54,9 +54,9 @@ export class BonusScene extends BaseScene {
         this.boardRoot.addChild(this.grid);
 
         this.prize = new PIXI.Text('', {
-            fill: 0xffd54f,
-            fontSize: 48,
-            fontWeight: '700',
+            fill: GameConfig.bonusPrizeColor,
+            fontSize: GameConfig.bonusPrizeFontSize,
+            fontWeight: GameConfig.bonusPrizeFontWeight,
         });
         this.prize.anchor.set(0.5);
         this.prize.visible = false;
@@ -144,31 +144,37 @@ export class BonusScene extends BaseScene {
         }
 
         this.dim.clear();
-        this.dim.beginFill(0x07060d, 0.62);
+        this.dim.beginFill(GameConfig.bonusDimColor, GameConfig.bonusDimAlpha);
         this.dim.drawRect(0, 0, this.screenWidth, this.screenHeight);
         this.dim.endFill();
 
         const boardWidth = this.boardSprite.texture.width;
         const boardHeight = this.boardSprite.texture.height;
-        const fit = Math.min(this.screenWidth, this.screenHeight) * 0.9
+        const fit = Math.min(this.screenWidth, this.screenHeight)
+            * GameConfig.bonusFitRatio
             / Math.max(boardWidth, boardHeight);
-        const stride = boardWidth * 0.23;
-        const columnX = boardWidth * 0.27;
+        const stride = boardWidth * GameConfig.bonusStrideRatio;
+        const columnX = boardWidth * GameConfig.bonusColumnXRatio;
 
         this.boardRoot.scale.set(fit);
         this.boardRoot.position.set(this.screenWidth / 2, this.screenHeight / 2);
 
         GameConfig.bonusSymbols.forEach((symbol, index) => {
             const collection = this.collections.get(symbol.id);
-            collection.layout(stride * 0.7);
-            collection.position.set((index - 1) * columnX, -boardHeight * 0.3);
+            collection.layout(stride * GameConfig.bonusCollectionScale);
+            collection.position.set(
+                (index - 1) * columnX,
+                boardHeight * GameConfig.bonusCollectionsYRatio
+            );
         });
 
         this.grid.layout(stride);
-        this.grid.position.set(0, boardHeight * 0.14);
+        this.grid.position.set(0, boardHeight * GameConfig.bonusGridYRatio);
 
-        this.prize.style.fontSize = Math.round(boardWidth * 0.048);
-        this.prize.position.set(0, -boardHeight * 0.44);
+        this.prize.style.fontSize = Math.round(
+            boardWidth * GameConfig.bonusPrizeFontRatio
+        );
+        this.prize.position.set(0, boardHeight * GameConfig.bonusPrizeYRatio);
     }
 
     #symbol(id) {

@@ -1,4 +1,3 @@
-import * as PIXI from 'pixi.js';
 import {Wheel} from '@/components/wheel/Wheel.js';
 import {WheelPointer} from '@/components/wheel/WheelPointer.js';
 import {SpinButton} from '@/components/ui/SpinButton/SpinButton.js';
@@ -8,6 +7,8 @@ import {BetSelector} from '@/components/ui/BetSelector/BetSelector.js';
 import {BetSelectorView} from '@/components/ui/BetSelector/BetSelectorView.js';
 import {WinDisplay} from '@/components/ui/WinDisplay/WinDisplay.js';
 import {WinDisplayView} from '@/components/ui/WinDisplay/WinDisplayView.js';
+import {FreeSpinsLabel} from '@/components/ui/FreeSpinsLabel/FreeSpinsLabel.js';
+import {AnimationConfig} from '@/config/AnimationConfig.js';
 import {GameConfig} from '@/config/GameConfig.js';
 import {BaseScene} from '@/scenes/BaseScene.js';
 import {WheelAnimator} from '@/components/wheel/WheelAnimator.js';
@@ -35,7 +36,6 @@ export class WheelScene extends BaseScene {
         this.winDisplay = null;
         this.winView = null;
         this.freeSpinsLabel = null;
-        this.freeSpinsRemaining = null;
     }
 
     create() {
@@ -61,18 +61,17 @@ export class WheelScene extends BaseScene {
         this.betView = new BetSelectorView(this.betSelector);
         this.betView.position.set(0, GameConfig.wheelRadius + 85);
 
-        this.winDisplay = new WinDisplay({durationMs: 1200});
+        this.winDisplay = new WinDisplay({
+            durationMs: AnimationConfig.winDisplayDurationMs,
+        });
         this.winView = new WinDisplayView(this.winDisplay);
         this.winView.position.set(0, -GameConfig.wheelRadius - 50);
 
-        this.freeSpinsLabel = new PIXI.Text('', {
-            fill: 0xffffff,
-            fontSize: 36,
-            fontWeight: '700',
-        });
-        this.freeSpinsLabel.anchor.set(0.5);
-        this.freeSpinsLabel.position.set(0, -GameConfig.wheelRadius - 100);
-        this.freeSpinsLabel.visible = false;
+        this.freeSpinsLabel = new FreeSpinsLabel();
+        this.freeSpinsLabel.position.set(
+            0,
+            -GameConfig.wheelRadius + GameConfig.freeSpinsLabel.offsetY
+        );
 
         this.addChild(this.wheel);
         this.addChild(this.pointer);
@@ -121,8 +120,7 @@ export class WheelScene extends BaseScene {
     }
 
     setFreeSpinsRemaining(remaining) {
-        this.freeSpinsRemaining = remaining;
-        this.#syncFreeSpinsLabel();
+        this.freeSpinsLabel?.setRemaining(remaining);
     }
 
     setAccumulatedWin(cents) {
@@ -164,30 +162,10 @@ export class WheelScene extends BaseScene {
         this.balanceView?.sync();
         this.betView?.sync();
         this.winView?.sync();
-        this.#syncFreeSpinsLabel();
     }
 
     onExit() {
         super.onExit();
-    }
-
-    #syncFreeSpinsLabel() {
-        if (!this.freeSpinsLabel) {
-            return;
-        }
-
-        const remaining = this.freeSpinsRemaining;
-
-        if (!remaining || remaining < 1) {
-            this.freeSpinsLabel.visible = false;
-            this.freeSpinsLabel.text = '';
-            return;
-        }
-
-        this.freeSpinsLabel.text = remaining === 1
-            ? '1 Free Spin left'
-            : `${remaining} Free Spins left`;
-        this.freeSpinsLabel.visible = true;
     }
 
     destroy(options) {
