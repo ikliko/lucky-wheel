@@ -67,6 +67,10 @@ export const UiConfig = {
     menuIconLineWidthRatio: 0.42,
     menuIconLineHeightRatio: 0.05,
     menuIconLineGapRatio: 0.12,
+    menuInfoHeadingSize: 16,
+    menuInfoBodySize: 15,
+    menuInfoLineGap: 8,
+    menuInfoSectionGap: 22,
 
     chromeBalanceGap: 52,
     chromeBetGap: 136,

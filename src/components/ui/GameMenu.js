@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import {UiConfig} from '@/config/UiConfig.js';
 import {CircleIconButton} from '@/components/ui/CircleIconButton.js';
 import {ModalShell} from '@/components/ui/ModalShell.js';
+import {MenuInfoContent} from '@/components/ui/MenuInfoContent.js';
 
 export class GameMenu extends ModalShell {
     #iconProgress = 0;
@@ -13,13 +14,13 @@ export class GameMenu extends ModalShell {
     #onOpen;
 
     constructor({ticker, onOpen = null} = {}) {
-        super({title: 'MENU'});
+        super({title: 'INFO'});
 
         this.#ticker = ticker;
         this.#onOpen = onOpen;
 
-        this.body = new PIXI.Container();
-        this.panel.addChild(this.body);
+        this.info = new MenuInfoContent();
+        this.panel.addChild(this.info);
 
         this.button = this.#createHamburger();
         this.addChild(this.button);
@@ -48,11 +49,13 @@ export class GameMenu extends ModalShell {
         const ratio = UiConfig.menuPanelSizeRatio;
         const panelWidth = screenWidth * ratio;
         const panelHeight = screenHeight * ratio;
+        const pad = UiConfig.modalPadding;
+        const contentTop = pad + UiConfig.modalTitleSize + UiConfig.modalTitleGap;
+        const contentWidth = panelWidth - pad * 2;
+
         this.layoutPanel(screenWidth, screenHeight, panelWidth, panelHeight);
-        this.body.position.set(
-            UiConfig.modalPadding,
-            UiConfig.modalPadding + UiConfig.modalTitleSize + UiConfig.modalTitleGap
-        );
+        this.info.position.set(pad, contentTop);
+        this.info.layout(contentWidth);
     }
 
     destroy(options) {

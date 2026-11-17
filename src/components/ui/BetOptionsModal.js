@@ -51,7 +51,7 @@ export class BetOptionsModal extends ModalShell {
             card.setEnabled(this.model.enabled);
         }
 
-        this.footerBalance.text = `BALANCE: ${this.#getBalanceText?.() ?? '—'}`;
+        this.footerBalance.text = `BALANCE: ${this.#getBalanceText?.() ?? '-'}`;
         this.footerBet.text = `BET: ${MoneyFormatter.formatCents(this.model.selectedBetCents)}`;
     }
 
