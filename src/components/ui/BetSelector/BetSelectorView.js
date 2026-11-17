@@ -79,8 +79,8 @@ export class BetSelectorView extends PIXI.Container {
             size: UiConfig.betArrowSize,
             texture,
             iconScale: UiConfig.betArrowIconScale,
-            fill: UiConfig.betArrowFill,
-            fillAlpha: UiConfig.betArrowFillAlpha,
+            fill: UiConfig.chromeButtonFill,
+            fillAlpha: UiConfig.chromeButtonFillAlpha,
             disabledAlpha: UiConfig.betArrowDisabledAlpha,
             onTap,
         });
@@ -91,10 +91,10 @@ export class BetSelectorView extends PIXI.Container {
             size: UiConfig.coinsButtonSize,
             texture,
             iconScale: UiConfig.coinsIconScale,
-            fill: UiConfig.coinsButtonFill,
-            fillAlpha: UiConfig.coinsButtonFillAlpha,
-            stroke: UiConfig.coinsButtonStroke,
-            strokeWidth: UiConfig.coinsButtonStrokeWidth,
+            fill: UiConfig.chromeButtonFill,
+            fillAlpha: UiConfig.chromeButtonFillAlpha,
+            stroke: UiConfig.chromeButtonStroke,
+            strokeWidth: UiConfig.chromeButtonStrokeWidth,
             onTap: () => this.#onOpenMore?.(),
         });
     }

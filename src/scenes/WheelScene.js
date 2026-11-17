@@ -18,14 +18,16 @@ export class WheelScene extends BaseScene {
     #created = false;
     #screenWidth = 0;
     #screenHeight = 0;
+    #onOpenBetOptions = null;
 
-    constructor(resources, ticker, onSpin, onBetSelected) {
+    constructor(resources, ticker, onSpin, onBetSelected, {onOpenBetOptions} = {}) {
         super();
 
         this.resources = resources;
         this.ticker = ticker;
         this.onSpin = onSpin;
         this.onBetSelected = onBetSelected;
+        this.#onOpenBetOptions = onOpenBetOptions;
 
         this.wheel = null;
         this.pointer = null;
@@ -89,13 +91,20 @@ export class WheelScene extends BaseScene {
         this.#created = true;
     }
 
-    attachOverlayHost(host) {
-        if (!this.betOptions || this.betOptions.parent === host) {
+    attachBetOptions(host, screenWidth, screenHeight) {
+        if (!this.betOptions) {
             return;
         }
 
+        if (screenWidth > 0 && screenHeight > 0) {
+            this.#screenWidth = screenWidth;
+            this.#screenHeight = screenHeight;
+        }
+
         host.addChild(this.betOptions);
-        this.#layoutBetOptions();
+        this.betOptions.position.set(0, 0);
+        this.betOptions.scale.set(1);
+        this.betOptions.layout(this.#screenWidth, this.#screenHeight);
     }
 
     openBetOptions() {
@@ -103,6 +112,7 @@ export class WheelScene extends BaseScene {
             return;
         }
 
+        this.#onOpenBetOptions?.();
         this.betOptions.show();
     }
 
@@ -250,7 +260,6 @@ export class WheelScene extends BaseScene {
             screenWidth / 2,
             screenHeight * (1 - UiConfig.screenBottomPadRatio) - bottom * fit,
         );
-        this.#layoutBetOptions();
     }
 
     #layoutChrome() {
@@ -267,15 +276,5 @@ export class WheelScene extends BaseScene {
         this.centerStatus.setWinText(
             this.winDisplay.visible ? this.winDisplay.text : ''
         );
-    }
-
-    #layoutBetOptions() {
-        if (!this.betOptions || this.#screenWidth < 1 || this.#screenHeight < 1) {
-            return;
-        }
-
-        this.betOptions.position.set(0, 0);
-        this.betOptions.scale.set(1);
-        this.betOptions.layout(this.#screenWidth, this.#screenHeight);
     }
 }

@@ -12,6 +12,7 @@ import {KeyboardControls} from '@/core/KeyboardControls.js';
 import {LoadingScene} from '@/scenes/LoadingScene.js';
 import {WheelScene} from '@/scenes/WheelScene.js';
 import {BonusScene} from '@/scenes/BonusScene.js';
+import {GameMenu} from '@/components/ui/GameMenu.js';
 import {BonusFlow} from '@/features/BonusFlow.js';
 import {GameController} from '@/game/GameController.js';
 
@@ -34,11 +35,14 @@ export class GameApplication {
         });
 
         this.assetManager = new AssetManager(this.app.loader);
-        this.sceneManager = new SceneManager(this.app.stage);
+        this.sceneManager = new SceneManager(this.app.stage, {
+            onChromeElevate: () => this.#elevateUiChrome(),
+        });
 
         this.loadingScene = null;
         this.wheelScene = null;
         this.bonusScene = null;
+        this.gameMenu = null;
         this.controller = null;
         this.keyboard = null;
     }
@@ -84,11 +88,17 @@ export class GameApplication {
             const storage = new SessionStorage();
             const boot = await bootstrapSession(api, storage);
 
+            this.gameMenu = new GameMenu({
+                ticker: this.app.ticker,
+                onOpen: () => this.wheelScene?.betOptions?.hide(),
+            });
+
             this.wheelScene = new WheelScene(
                 resources,
                 this.app.ticker,
                 () => this.controller.onSpinPressed(),
-                bet => this.controller.onBetSelected(bet)
+                bet => this.controller.onBetSelected(bet),
+                {onOpenBetOptions: () => this.gameMenu?.hide()},
             );
 
             this.bonusScene = new BonusScene(resources);
@@ -110,7 +120,6 @@ export class GameApplication {
 
             this.loadingScene.setProgress(1);
             this.sceneManager.show(this.wheelScene);
-            this.wheelScene.attachOverlayHost(this.app.stage);
             this.#resetLoadingScene();
             this.#onResize();
             this.controller.boot();
@@ -130,6 +139,11 @@ export class GameApplication {
         this.keyboard?.detach();
         this.keyboard = null;
         this.controller = null;
+
+        if (this.gameMenu) {
+            this.gameMenu.destroy({children: true});
+            this.gameMenu = null;
+        }
 
         if (this.wheelScene) {
             if (this.sceneManager.current === this.wheelScene) {
@@ -163,16 +177,32 @@ export class GameApplication {
         this.loadingScene = null;
     }
 
+    #elevateUiChrome() {
+        const width = this.app.screen.width;
+        const height = this.app.screen.height;
+
+        this.wheelScene?.attachBetOptions(this.app.stage, width, height);
+
+        if (!this.gameMenu) {
+            return;
+        }
+
+        this.app.stage.addChild(this.gameMenu);
+        this.gameMenu.position.set(0, 0);
+        this.gameMenu.scale.set(1);
+        this.gameMenu.layout(width, height);
+    }
+
     #ensureResizeHook() {
         if (this.#onResize) {
             return;
         }
 
         this.#onResize = () => {
-            this.sceneManager.layoutScreen(
-                this.app.screen.width,
-                this.app.screen.height
-            );
+            const width = this.app.screen.width;
+            const height = this.app.screen.height;
+            this.sceneManager.layoutScreen(width, height);
+            this.#elevateUiChrome();
         };
 
         this.app.renderer.on('resize', this.#onResize);
@@ -187,8 +217,12 @@ export class GameApplication {
             isWheelActive: () => (
                 this.sceneManager.current === this.wheelScene
                 && !this.wheelScene?.betOptions?.isOpen
+                && !this.gameMenu?.isOpen
             ),
-            isBonusActive: () => this.sceneManager.current === this.bonusScene,
+            isBonusActive: () => (
+                this.sceneManager.current === this.bonusScene
+                && !this.gameMenu?.isOpen
+            ),
             onSpin: () => this.controller?.onSpinPressed(),
             onBonusPick: (cellIndex) => this.bonusScene?.pickCell(cellIndex),
         });

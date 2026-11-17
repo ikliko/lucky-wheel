@@ -1,38 +1,18 @@
 import * as PIXI from 'pixi.js';
 import {UiConfig} from '@/config/UiConfig.js';
 import {MoneyFormatter} from '@/utils/MoneyFormatter.js';
-import {DimOverlay} from '@/components/ui/DimOverlay.js';
 import {BetCard} from '@/components/ui/BetCard.js';
+import {ModalShell} from '@/components/ui/ModalShell.js';
 
-export class BetOptionsModal extends PIXI.Container {
+export class BetOptionsModal extends ModalShell {
     #cards = new Map();
     #getBalanceText;
 
     constructor({model, getBalanceText, onClose}) {
-        super();
+        super({title: 'BET OPTIONS', onClose});
 
         this.model = model;
         this.#getBalanceText = getBalanceText;
-        this.onClose = onClose;
-
-        this.overlay = new DimOverlay();
-        this.addChild(this.overlay);
-
-        this.panel = new PIXI.Container();
-        this.panel.interactive = true;
-        this.overlay.content.addChild(this.panel);
-
-        this.panelBg = new PIXI.Graphics();
-        this.panel.addChild(this.panelBg);
-
-        this.title = new PIXI.Text('BET OPTIONS', {
-            fill: UiConfig.colorValue,
-            fontFamily: UiConfig.fontFamilyUi,
-            fontSize: UiConfig.modalTitleSize,
-            fontWeight: '700',
-        });
-        this.title.anchor.set(0.5, 0);
-        this.panel.addChild(this.title);
 
         this.grid = new PIXI.Container();
         this.panel.addChild(this.grid);
@@ -53,33 +33,16 @@ export class BetOptionsModal extends PIXI.Container {
         this.panel.addChild(this.footerBet);
 
         this.#buildGrid();
-
-        this.visible = false;
-        this.interactiveChildren = false;
-        this.overlay.dim.on('pointertap', () => this.hide());
     }
 
     show() {
         this.sync();
-        this.visible = true;
-        this.interactiveChildren = true;
-        this.overlay.show();
-    }
-
-    hide() {
-        this.overlay.hide();
-        this.visible = false;
-        this.interactiveChildren = false;
-        this.onClose?.();
-    }
-
-    get isOpen() {
-        return this.visible;
+        super.show();
     }
 
     layout(screenWidth, screenHeight) {
-        this.overlay.layout(screenWidth, screenHeight);
-        this.#layoutPanel(screenWidth, screenHeight);
+        this.layoutDim(screenWidth, screenHeight);
+        this.#layoutContent(screenWidth, screenHeight);
     }
 
     sync() {
@@ -111,7 +74,7 @@ export class BetOptionsModal extends PIXI.Container {
         this.hide();
     }
 
-    #layoutPanel(screenWidth, screenHeight) {
+    #layoutContent(screenWidth, screenHeight) {
         const cols = UiConfig.modalColumns;
         const gap = UiConfig.modalGap;
         const pad = UiConfig.modalPadding;
@@ -127,19 +90,19 @@ export class BetOptionsModal extends PIXI.Container {
             screenWidth * UiConfig.modalMaxWidthRatio
         );
         const panelHeight = Math.min(
-            pad + UiConfig.modalTitleSize + 16 + gridHeight + 28 + UiConfig.modalFooterSize + pad,
+            pad
+                + UiConfig.modalTitleSize
+                + UiConfig.modalTitleGap
+                + gridHeight
+                + 28
+                + UiConfig.modalFooterSize
+                + pad,
             screenHeight * UiConfig.modalMaxHeightRatio
         );
 
-        this.panelBg.clear();
-        this.panelBg.lineStyle(UiConfig.cardStrokeWidth, UiConfig.colorPanelStroke, 1);
-        this.panelBg.beginFill(UiConfig.colorPanelFill);
-        this.panelBg.drawRoundedRect(0, 0, panelWidth, panelHeight, UiConfig.modalRadius);
-        this.panelBg.endFill();
+        this.layoutPanel(screenWidth, screenHeight, panelWidth, panelHeight);
 
-        this.title.position.set(panelWidth / 2, pad);
-
-        const gridTop = pad + UiConfig.modalTitleSize + 16;
+        const gridTop = pad + UiConfig.modalTitleSize + UiConfig.modalTitleGap;
         let index = 0;
 
         for (const cents of this.model.allowedBetsCents) {
@@ -156,10 +119,5 @@ export class BetOptionsModal extends PIXI.Container {
         this.footerBalance.position.set(pad, footerY);
         this.footerBet.anchor.set(1, 0);
         this.footerBet.position.set(panelWidth - pad, footerY);
-
-        this.panel.position.set(
-            (screenWidth - panelWidth) / 2,
-            (screenHeight - panelHeight) / 2
-        );
     }
 }

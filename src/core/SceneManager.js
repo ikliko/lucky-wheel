@@ -1,9 +1,10 @@
 export class SceneManager {
-    constructor(stage) {
+    constructor(stage, {onChromeElevate} = {}) {
         this.stage = stage;
         this.current = null;
         this.screenWidth = 0;
         this.screenHeight = 0;
+        this.onChromeElevate = onChromeElevate;
     }
 
     show(scene) {
@@ -26,6 +27,8 @@ export class SceneManager {
         if (this.screenWidth > 0 && this.screenHeight > 0) {
             scene.layoutScreen(this.screenWidth, this.screenHeight);
         }
+
+        this.onChromeElevate?.();
     }
 
     layoutScreen(screenWidth, screenHeight) {
