@@ -2,28 +2,37 @@ export class SceneManager {
     constructor(stage) {
         this.stage = stage;
         this.current = null;
+        this.screenWidth = 0;
+        this.screenHeight = 0;
     }
 
     show(scene) {
-        if(this.current === scene) {
+        if (this.current === scene) {
             return;
         }
 
-        if(this.current) {
+        if (this.current) {
             this.current.onExit();
         }
 
-        if(!scene.parent) {
+        if (!scene.parent) {
             this.stage.addChild(scene);
         }
 
         scene.create();
         scene.onEnter();
         this.current = scene;
+
+        if (this.screenWidth > 0 && this.screenHeight > 0) {
+            scene.layoutScreen(this.screenWidth, this.screenHeight);
+        }
     }
 
     layoutScreen(screenWidth, screenHeight) {
-        if(this.current) {
+        this.screenWidth = screenWidth;
+        this.screenHeight = screenHeight;
+
+        if (this.current) {
             this.current.layoutScreen(screenWidth, screenHeight);
         }
     }

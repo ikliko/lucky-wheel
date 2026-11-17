@@ -24,6 +24,7 @@ const TRANSITIONS = {
     ],
     [GameState.SPINNING]: [
         GameState.FREE_SPINS,
+        GameState.BONUS,
         GameState.SHOWING_WIN,
         GameState.ERROR,
     ],

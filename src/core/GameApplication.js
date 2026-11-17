@@ -9,6 +9,8 @@ import {AssetManager} from '@/core/AssetManager.js';
 import {SceneManager} from '@/core/SceneManager.js';
 
 import {WheelScene} from '@/scenes/WheelScene.js';
+import {BonusScene} from '@/scenes/BonusScene.js';
+import {BonusFlow} from '@/features/BonusFlow.js';
 import {GameController} from '@/game/GameController.js';
 
 import {bootstrapSession} from '@/bootstrapSession.js';
@@ -31,6 +33,7 @@ export class GameApplication {
         this.sceneManager = new SceneManager(this.app.stage);
 
         this.wheelScene = null;
+        this.bonusScene = null;
         this.controller = null;
     }
 
@@ -66,6 +69,8 @@ export class GameApplication {
                 bet => this.controller.onBetSelected(bet)
             );
 
+            this.bonusScene = new BonusScene(resources);
+
             this.controller = new GameController(
                 this.wheelScene,
                 undefined,
@@ -73,6 +78,11 @@ export class GameApplication {
                     api,
                     sessionId: boot.session.id,
                     balanceCents: boot.user.balanceCents,
+                    bonusFlow: new BonusFlow(
+                        this.sceneManager,
+                        this.bonusScene,
+                        this.wheelScene,
+                    ),
                 }
             );
 

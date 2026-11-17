@@ -21,11 +21,20 @@ export class WheelGeometry {
         return ((radians % tau) + tau) % tau;
     }
 
-    rotationToCenterSector(sectorIndex, currentRotation, extraTurns = 0) {
+    rotationToCenterSector(
+        sectorIndex,
+        currentRotation,
+        extraTurns = 0,
+        direction = 1,
+    ) {
         const targetMod = this.normalizeAngle(-sectorIndex * this.sweep);
         const currentMod = this.normalizeAngle(currentRotation);
-        const delta = this.normalizeAngle(targetMod - currentMod);
-        
-        return currentRotation + delta + extraTurns * Math.PI * 2;
+        let travel = this.normalizeAngle(targetMod - currentMod);
+
+        if (direction < 0 && travel !== 0) {
+            travel -= Math.PI * 2;
+        }
+
+        return currentRotation + travel + direction * extraTurns * Math.PI * 2;
     }
 }

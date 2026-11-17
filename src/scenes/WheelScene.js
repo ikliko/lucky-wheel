@@ -35,6 +35,7 @@ export class WheelScene extends BaseScene {
         this.winDisplay = null;
         this.winView = null;
         this.freeSpinsLabel = null;
+        this.freeSpinsRemaining = null;
     }
 
     create() {
@@ -120,20 +121,8 @@ export class WheelScene extends BaseScene {
     }
 
     setFreeSpinsRemaining(remaining) {
-        if (!this.freeSpinsLabel) {
-            return;
-        }
-
-        if (!remaining || remaining < 1) {
-            this.freeSpinsLabel.visible = false;
-            this.freeSpinsLabel.text = '';
-            return;
-        }
-
-        this.freeSpinsLabel.text = remaining === 1
-            ? '1 Free Spin left'
-            : `${remaining} Free Spins left`;
-        this.freeSpinsLabel.visible = true;
+        this.freeSpinsRemaining = remaining;
+        this.#syncFreeSpinsLabel();
     }
 
     setAccumulatedWin(cents) {
@@ -170,18 +159,35 @@ export class WheelScene extends BaseScene {
         }
     }
 
-    /** L replaces this with BonusScene presentation. */
-    async showBonus(entry) {
-        void entry;
+    onEnter() {
+        super.onEnter();
+        this.balanceView?.sync();
+        this.betView?.sync();
+        this.winView?.sync();
+        this.#syncFreeSpinsLabel();
     }
 
     onExit() {
-        this.animator?.cancel();
-        this.winDisplay?.cancel();
-        this.winView?.sync();
-        this.setFreeSpinsRemaining(null);
-
         super.onExit();
+    }
+
+    #syncFreeSpinsLabel() {
+        if (!this.freeSpinsLabel) {
+            return;
+        }
+
+        const remaining = this.freeSpinsRemaining;
+
+        if (!remaining || remaining < 1) {
+            this.freeSpinsLabel.visible = false;
+            this.freeSpinsLabel.text = '';
+            return;
+        }
+
+        this.freeSpinsLabel.text = remaining === 1
+            ? '1 Free Spin left'
+            : `${remaining} Free Spins left`;
+        this.freeSpinsLabel.visible = true;
     }
 
     destroy(options) {

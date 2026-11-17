@@ -9,6 +9,7 @@ export class GameController {
         balanceCents = GameConfig.initialBalanceCents,
         betCents = GameConfig.defaultBetCents,
         freeSpinsController = null,
+        bonusFlow = null,
     } = {}) {
         this.wheelScene = wheelScene;
         this.stateMachine = stateMachine;
@@ -16,6 +17,7 @@ export class GameController {
         this.sessionId = sessionId;
         this.balanceCents = balanceCents;
         this.betCents = betCents;
+        this.bonusFlow = bonusFlow;
 
         this.freeSpinsController = freeSpinsController ?? new FreeSpinsController(
             wheelScene,
@@ -26,7 +28,7 @@ export class GameController {
                     }
                 },
                 onBonus: async (entry) => {
-                    await this.wheelScene.showBonus(entry);
+                    await this.#playBonus(entry.bonus);
                 },
                 onExitBonus: () => {
                     if (this.stateMachine.canTransition(GameState.FREE_SPINS)) {
@@ -102,6 +104,9 @@ export class GameController {
             if (isFreeSpins) {
                 this.stateMachine.transition(GameState.FREE_SPINS);
                 await this.freeSpinsController.play(round.result.freeSpins);
+            } else if (round.result?.type === 'bonus') {
+                this.stateMachine.transition(GameState.BONUS);
+                await this.#playBonus(round.result.bonus);
             }
 
             this.wheelScene.setFreeSpinsRemaining(null);
@@ -123,6 +128,14 @@ export class GameController {
 
             this.#setBetLocked(true);
         }
+    }
+
+    async #playBonus(bonus) {
+        if (!this.bonusFlow) {
+            throw new Error('Bonus presentation is not configured');
+        }
+
+        await this.bonusFlow.play(bonus);
     }
 
     #syncWalletUi() {

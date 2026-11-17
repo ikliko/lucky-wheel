@@ -6,6 +6,15 @@ export const GameConfig = {
     startLocalDiameter: 120,
     sectorCount: 18,
     freeSpinsAward: 3,
+    bonusCellCount: 9,
+    bonusWinCount: 3,
+    bonusMaxPicks: 7,
+    bonusHoldMs: 1200,
+    bonusSymbols: [
+        {id: 'star', texture: 'tileGreen', multiplier: 2},
+        {id: 'circle', texture: 'tileBlue', multiplier: 5},
+        {id: 'diamond', texture: 'tileRed', multiplier: 3},
+    ],
     sectors: [
         {id: 'sector_0',  type: 'lose',       label: 'LOSE',       multiplier: 0},
         {id: 'sector_1',  type: 'lose',       label: 'LOSE',       multiplier: 0}, // A

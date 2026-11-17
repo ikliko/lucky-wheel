@@ -54,6 +54,13 @@ describe('GameStateMachine', () => {
         expect(sm.state).toBe(GameState.IDLE);
     });
 
+    it('allows SPINNING → BONUS → SHOWING_WIN', () => {
+        const sm = new GameStateMachine(GameState.SPINNING);
+        sm.transition(GameState.BONUS);
+        sm.transition(GameState.SHOWING_WIN);
+        expect(sm.state).toBe(GameState.SHOWING_WIN);
+    });
+
     it('allows FREE_SPINS ↔ BONUS', () => {
         const sm = new GameStateMachine(GameState.FREE_SPINS);
         sm.transition(GameState.BONUS);

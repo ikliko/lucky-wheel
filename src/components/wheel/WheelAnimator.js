@@ -17,7 +17,8 @@ export class WheelAnimator {
         const endRotation = this.wheel.geometry.rotationToCenterSector(
             sectorIndex,
             startRotation,
-            AnimationConfig.extraTurns
+            AnimationConfig.extraTurns,
+            AnimationConfig.direction,
         );
         const ease = Easing[AnimationConfig.easing] || Easing.easeOutCubic;
 

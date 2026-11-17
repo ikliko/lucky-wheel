@@ -58,7 +58,6 @@ function createWheelScene(spinToImpl = async () => {}) {
         setFreeSpinsRemaining: vi.fn(),
         setAccumulatedWin: vi.fn(),
         clearAccumulatedWin: vi.fn(),
-        showBonus: vi.fn(async () => {}),
     };
 }
 
@@ -78,6 +77,7 @@ function createController(spinToImpl = async () => {}, options = {}) {
         sessionId: options.sessionId ?? 'session-1',
         balanceCents: options.balanceCents ?? GameConfig.initialBalanceCents,
         betCents: options.betCents ?? GameConfig.defaultBetCents,
+        bonusFlow: options.bonusFlow ?? null,
     });
 
     if (options.boot !== false) {
@@ -502,6 +502,126 @@ describe('GameController', () => {
         });
 
         expect(wheelScene.setBetEnabled).toHaveBeenLastCalledWith(true);
+    });
+
+    it('plays a base bonus through bonusFlow then shows the win', async () => {
+        const bonus = {
+            sequence: ['diamond', 'diamond', 'diamond'],
+            winningCollection: 'diamond',
+            finalWinCents: 600,
+        };
+        const bonusFlow = {
+            play: vi.fn(async () => {}),
+        };
+        const {controller, wheelScene, stateMachine} = createController(async () => {}, {
+            bonusFlow,
+            spinImpl: async () => ({
+                ...roundFixture,
+                winCents: 600,
+                balanceAfterRoundCents: 100500,
+                result: {
+                    sectorId: 'sector_11',
+                    sectorIndex: 11,
+                    type: 'bonus',
+                    winCents: 600,
+                    bonus,
+                },
+            }),
+        });
+
+        controller.onSpinPressed();
+
+        await vi.waitFor(() => {
+            expect(stateMachine.state).toBe(GameState.IDLE);
+        });
+
+        expect(wheelScene.spinTo).toHaveBeenCalledWith(11);
+        expect(bonusFlow.play).toHaveBeenCalledWith(bonus);
+        expect(bonusFlow.play.mock.invocationCallOrder[0])
+            .toBeLessThan(wheelScene.showWin.mock.invocationCallOrder[0]);
+        expect(wheelScene.showWin).toHaveBeenCalledWith(600);
+        expect(controller.balanceCents).toBe(100500);
+    });
+
+    it('plays a nested free-spin bonus through bonusFlow', async () => {
+        const bonus = {
+            sequence: ['star', 'star', 'star'],
+            winningCollection: 'star',
+            finalWinCents: 400,
+        };
+        const seen = [];
+        const bonusFlow = {
+            play: vi.fn(async () => {
+                seen.push(stateMachine.state);
+            }),
+        };
+        const {controller, wheelScene, stateMachine} = createController(async () => {}, {
+            bonusFlow,
+            spinImpl: async () => ({
+                ...roundFixture,
+                winCents: 400,
+                balanceAfterRoundCents: 100300,
+                result: {
+                    sectorId: 'sector_7',
+                    sectorIndex: 7,
+                    type: 'free_spins',
+                    winCents: 400,
+                    freeSpins: {
+                        retriggered: false,
+                        totalWinCents: 400,
+                        results: [
+                            {sectorIndex: 5, type: 'win', awardedAdditionalSpins: 0, winCents: 0},
+                            {
+                                sectorIndex: 11,
+                                type: 'bonus',
+                                awardedAdditionalSpins: 0,
+                                winCents: 400,
+                                bonus,
+                            },
+                            {sectorIndex: 1, type: 'lose', awardedAdditionalSpins: 0, winCents: 0},
+                        ],
+                    },
+                },
+            }),
+        });
+
+        controller.onSpinPressed();
+
+        await vi.waitFor(() => {
+            expect(stateMachine.state).toBe(GameState.IDLE);
+        });
+
+        expect(wheelScene.spinTo.mock.calls.map(([index]) => index)).toEqual([7, 5, 11, 1]);
+        expect(bonusFlow.play).toHaveBeenCalledWith(bonus);
+        expect(seen).toEqual([GameState.BONUS]);
+        expect(wheelScene.showWin).toHaveBeenCalledWith(400);
+    });
+
+    it('enters ERROR when bonusFlow is missing', async () => {
+        const {controller, wheelScene, stateMachine} = createController(async () => {}, {
+            spinImpl: async () => ({
+                ...roundFixture,
+                result: {
+                    sectorId: 'sector_11',
+                    sectorIndex: 11,
+                    type: 'bonus',
+                    bonus: {sequence: ['star', 'star', 'star']},
+                },
+            }),
+        });
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        try {
+            controller.onSpinPressed();
+
+            await vi.waitFor(() => {
+                expect(stateMachine.state).toBe(GameState.ERROR);
+            });
+
+            expect(wheelScene.showWin).not.toHaveBeenCalled();
+        } finally {
+            errorSpy.mockRestore();
+        }
     });
 });
 
