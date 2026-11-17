@@ -64,8 +64,6 @@ export class FreeSpinsController {
         let remaining = this.initialAward;
         let accumulatedWinCents = 0;
 
-        this.onAccumulatedWin(0);
-
         for (const entry of results) {
             this.onRemaining(remaining);
 

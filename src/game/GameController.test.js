@@ -481,7 +481,7 @@ describe('GameController', () => {
 
         expect(wheelScene.spinTo.mock.calls.map(([i]) => i)).toEqual([7, 5, 1, 13]);
         expect(wheelScene.setAccumulatedWin.mock.calls.map(([c]) => c)).toEqual([
-            0, 100, 100, 700,
+            100, 100, 700,
         ]);
         expect(wheelScene.showWin).toHaveBeenCalledWith(700);
         expect(wheelScene.clearAccumulatedWin).toHaveBeenCalled();

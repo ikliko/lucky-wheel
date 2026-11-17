@@ -33,6 +33,8 @@ export const UiConfig = {
 
     betStripVisibleCount: 5,
     betStripDragThreshold: 8,
+    betStripEdgePadX: 1,
+    betStripEdgePadY: 1,
     betArrowSize: 36,
     betArrowIconScale: 0.42,
     betArrowGap: 8,

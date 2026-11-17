@@ -118,6 +118,7 @@ export class GameController {
                 await this.wheelScene.showWin(round.winCents);
             }
 
+            this.wheelScene.clearAccumulatedWin();
             this.stateMachine.transition(GameState.IDLE);
             this.#setBetLocked(false);
             this.#syncWalletUi();

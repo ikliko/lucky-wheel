@@ -161,6 +161,11 @@ export class WheelScene extends BaseScene {
             return;
         }
 
+        if (!cents) {
+            this.clearAccumulatedWin();
+            return;
+        }
+
         this.winDisplay.hold(cents);
         this.#syncCenterStatus();
     }
@@ -209,6 +214,9 @@ export class WheelScene extends BaseScene {
 
         this.winDisplay?.destroy();
         this.winDisplay = null;
+
+        this.betOptions?.destroy({children: true});
+        this.betOptions = null;
 
         super.destroy(options);
     }

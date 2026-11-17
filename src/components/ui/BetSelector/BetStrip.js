@@ -21,7 +21,8 @@ export class BetStrip extends PIXI.Container {
 
         const visible = UiConfig.betStripVisibleCount;
         this.#viewportWidth = visible * UiConfig.cardWidth
-            + (visible - 1) * UiConfig.cardGap;
+            + (visible - 1) * UiConfig.cardGap
+            + UiConfig.betStripEdgePadX * 2;
         this.#contentWidth = model.allowedBetsCents.length * UiConfig.cardWidth
             + Math.max(0, model.allowedBetsCents.length - 1) * UiConfig.cardGap;
 
@@ -42,7 +43,7 @@ export class BetStrip extends PIXI.Container {
             0,
             -UiConfig.cardHeight / 2,
             this.#viewportWidth,
-            UiConfig.cardHeight
+            UiConfig.cardHeight + UiConfig.betStripEdgePadY * 2
         );
         mask.endFill();
         this.addChild(mask);

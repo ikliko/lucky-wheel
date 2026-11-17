@@ -90,6 +90,10 @@ export class BonusScene extends BaseScene {
         });
     }
 
+    pickCell(index) {
+        this.#onPick(index);
+    }
+
     reveal(cellIndex, symbolId) {
         this.grid.reveal(cellIndex, this.#texture(this.#symbol(symbolId).texture));
     }

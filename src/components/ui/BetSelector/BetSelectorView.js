@@ -46,7 +46,6 @@ export class BetSelectorView extends PIXI.Container {
     sync() {
         this.strip.sync();
         this.moreButton.setEnabled(this.model.enabled);
-        this.#syncArrows();
     }
 
     #layoutRow() {
@@ -96,11 +95,7 @@ export class BetSelectorView extends PIXI.Container {
             fillAlpha: UiConfig.coinsButtonFillAlpha,
             stroke: UiConfig.coinsButtonStroke,
             strokeWidth: UiConfig.coinsButtonStrokeWidth,
-            onTap: () => {
-                if (this.model.enabled) {
-                    this.#onOpenMore?.();
-                }
-            },
+            onTap: () => this.#onOpenMore?.(),
         });
     }
 }

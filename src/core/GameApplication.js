@@ -7,6 +7,7 @@ import {LoadingConfig} from '@/config/LoadingConfig.js';
 
 import {AssetManager} from '@/core/AssetManager.js';
 import {SceneManager} from '@/core/SceneManager.js';
+import {KeyboardControls} from '@/core/KeyboardControls.js';
 
 import {LoadingScene} from '@/scenes/LoadingScene.js';
 import {WheelScene} from '@/scenes/WheelScene.js';
@@ -21,6 +22,7 @@ import {GameApi} from '@/api/GameApi.js';
 export class GameApplication {
     #starting = false;
     #started = false;
+    #destroyed = false;
     #errorView = null;
     #onResize = null;
 
@@ -38,15 +40,17 @@ export class GameApplication {
         this.wheelScene = null;
         this.bonusScene = null;
         this.controller = null;
+        this.keyboard = null;
     }
 
     async start() {
-        if (this.#starting || this.#started) {
+        if (this.#destroyed || this.#starting || this.#started) {
             return;
         }
 
         this.#starting = true;
         this.#clearStartupError();
+        this.#disposeBootArtifacts();
 
         try {
             const container = document.getElementById('app');
@@ -107,15 +111,42 @@ export class GameApplication {
             this.loadingScene.setProgress(1);
             this.sceneManager.show(this.wheelScene);
             this.wheelScene.attachOverlayHost(this.app.stage);
+            this.#resetLoadingScene();
             this.#onResize();
             this.controller.boot();
+            this.#ensureKeyboardHook();
 
             this.#started = true;
         } catch (error) {
             console.error('Game initialization failed:', error);
+            this.#disposeBootArtifacts();
             this.#showStartupError();
         } finally {
             this.#starting = false;
+        }
+    }
+
+    #disposeBootArtifacts() {
+        this.keyboard?.detach();
+        this.keyboard = null;
+        this.controller = null;
+
+        if (this.wheelScene) {
+            if (this.sceneManager.current === this.wheelScene) {
+                this.sceneManager.current = null;
+            }
+
+            this.wheelScene.destroy({children: true});
+            this.wheelScene = null;
+        }
+
+        if (this.bonusScene) {
+            if (this.sceneManager.current === this.bonusScene) {
+                this.sceneManager.current = null;
+            }
+
+            this.bonusScene.destroy({children: true});
+            this.bonusScene = null;
         }
     }
 
@@ -145,6 +176,23 @@ export class GameApplication {
         };
 
         this.app.renderer.on('resize', this.#onResize);
+    }
+
+    #ensureKeyboardHook() {
+        if (this.keyboard) {
+            return;
+        }
+
+        this.keyboard = new KeyboardControls({
+            isWheelActive: () => (
+                this.sceneManager.current === this.wheelScene
+                && !this.wheelScene?.betOptions?.isOpen
+            ),
+            isBonusActive: () => this.sceneManager.current === this.bonusScene,
+            onSpin: () => this.controller?.onSpinPressed(),
+            onBonusPick: (cellIndex) => this.bonusScene?.pickCell(cellIndex),
+        });
+        this.keyboard.attach();
     }
 
     #showStartupError() {
@@ -180,5 +228,27 @@ export class GameApplication {
     #clearStartupError() {
         this.#errorView?.remove();
         this.#errorView = null;
+    }
+
+    destroy() {
+        if (this.#destroyed) {
+            return;
+        }
+
+        this.#destroyed = true;
+        this.#disposeBootArtifacts();
+
+        if (this.#onResize) {
+            this.app.renderer.off('resize', this.#onResize);
+            this.#onResize = null;
+        }
+
+        this.#clearStartupError();
+        this.#resetLoadingScene();
+        this.sceneManager.current = null;
+
+        this.app.destroy(true, {children: true});
+        this.#started = false;
+        this.#starting = false;
     }
 }

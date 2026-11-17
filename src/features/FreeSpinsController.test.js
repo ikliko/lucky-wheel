@@ -130,7 +130,7 @@ describe('FreeSpinsController', () => {
 
         await controller.play(THREE_SPINS);
 
-        expect(totals).toEqual([0, 100, 100, 300]);
+        expect(totals).toEqual([100, 100, 300]);
     });
 
     it('rejects incomplete free spins batches', async () => {
