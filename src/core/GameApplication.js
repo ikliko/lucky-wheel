@@ -106,6 +106,8 @@ export class GameApplication {
 
             this.loadingScene.setProgress(1);
             this.sceneManager.show(this.wheelScene);
+            this.wheelScene.attachOverlayHost(this.app.stage);
+            this.#onResize();
             this.controller.boot();
 
             this.#started = true;

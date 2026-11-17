@@ -3,7 +3,7 @@ export const GameConfig = {
     wheelFitRatio: 0.6,
     arrowLocalHeight: 32,
     arrowLocalOverlap: 16,
-    startLocalDiameter: 120,
+    startLocalDiameter: 220,
     sectorCount: 18,
     freeSpinsAward: 3,
     bonusCellCount: 9,
@@ -23,12 +23,6 @@ export const GameConfig = {
     bonusPrizeColor: 0xffd54f,
     bonusPrizeFontSize: 48,
     bonusPrizeFontWeight: '700',
-    freeSpinsLabel: {
-        fill: 0xffffff,
-        fontSize: 36,
-        fontWeight: '700',
-        offsetY: -100,
-    },
     bonusSymbols: [
         {id: 'star', texture: 'tileGreen', multiplier: 2},
         {id: 'circle', texture: 'tileBlue', multiplier: 5},
@@ -62,8 +56,6 @@ export const GameConfig = {
         ...Array.from({length: 10}, (_, i) => (i + 1) * 10),
         ...Array.from({length: 18}, (_, i) => 150 + i * 50),
     ],
-
-    quickBetsCents: [10, 50, 100, 200, 500, 1000],
 
     defaultBetCents: 100,
     colors: {

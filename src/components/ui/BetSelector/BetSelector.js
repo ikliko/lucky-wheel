@@ -3,17 +3,15 @@ export class BetSelector {
     #enabled = true;
 
     constructor(
-        quickBetsCents,
+        allowedBetsCents,
         onSelect,
-        allowedBetsCents = quickBetsCents,
-        defaultBetCents = quickBetsCents[0]
+        defaultBetCents = allowedBetsCents[0]
     ) {
-        this.quickBetsCents = [...quickBetsCents];
         this.allowedBetsCents = [...allowedBetsCents];
         this.onSelect = onSelect;
         this.selectedBetCents = this.allowedBetsCents.includes(defaultBetCents)
             ? defaultBetCents
-            : this.quickBetsCents[0];
+            : this.allowedBetsCents[0];
     }
 
     selectBet(cents) {

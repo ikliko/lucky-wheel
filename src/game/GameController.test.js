@@ -161,6 +161,12 @@ describe('GameController', () => {
         expect(wheelScene.spinTo).toHaveBeenCalledTimes(1);
     });
 
+    it('allows SPINNING → IDLE', () => {
+        const sm = new GameStateMachine(GameState.SPINNING);
+        sm.transition(GameState.IDLE);
+        expect(sm.state).toBe(GameState.IDLE);
+    });
+
     it('transitions REQUESTING_SPIN → SPINNING → SHOWING_WIN → IDLE', async () => {
         const deferred = createDeferred();
         const {controller, stateMachine} = createController(() => deferred.promise);
@@ -387,7 +393,7 @@ describe('GameController', () => {
             expect(stateMachine.state).toBe(GameState.IDLE);
         });
 
-        expect(wheelScene.showWin).toHaveBeenCalledWith(0);
+        expect(wheelScene.showWin).not.toHaveBeenCalled();
         expect(controller.balanceCents).toBe(99900);
     });
 

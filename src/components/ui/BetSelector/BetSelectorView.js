@@ -1,48 +1,106 @@
 import * as PIXI from 'pixi.js';
-import {MoneyFormatter} from '@/utils/MoneyFormatter.js';
+import {UiConfig} from '@/config/UiConfig.js';
+import {CircleIconButton} from '@/components/ui/CircleIconButton.js';
+import {BetStrip} from '@/components/ui/BetSelector/BetStrip.js';
 
 export class BetSelectorView extends PIXI.Container {
-    #chips;
+    #onOpenMore;
 
-    constructor(model) {
+    constructor(model, {
+        onOpenMore,
+        coinsTexture,
+        chevronLeftTexture,
+        chevronRightTexture,
+    } = {}) {
         super();
 
         this.model = model;
-        this.#chips = new Map();
+        this.#onOpenMore = onOpenMore;
 
-        model.quickBetsCents.forEach((cents, index) => {
-            const chip = new PIXI.Text(MoneyFormatter.formatCents(cents), {
-                fill: 0xffffff,
-                fontSize: 22,
-                fontWeight: '600',
-            });
-            chip.anchor.set(0.5);
-            chip.position.set(
-                (index - (model.quickBetsCents.length - 1) / 2) * 90,
-                0,
-            );
-            chip.interactive = true;
-            chip.buttonMode = true;
-            chip.on('pointertap', () => {
-                model.selectBet(cents);
-                this.sync();
-            });
-
-            this.#chips.set(cents, chip);
-            this.addChild(chip);
+        this.strip = new BetStrip(model, {
+            onScroll: () => this.#syncArrows(),
         });
 
+        this.leftArrow = this.#createArrow(chevronLeftTexture, () => {
+            this.strip.nudge(-this.strip.stride);
+        });
+        this.rightArrow = this.#createArrow(chevronRightTexture, () => {
+            this.strip.nudge(this.strip.stride);
+        });
+        this.moreButton = this.#createCoins(coinsTexture);
+
+        this.#layoutRow();
         this.sync();
     }
 
-    sync() {
-        this.alpha = this.model.enabled ? 1 : 0.45;
+    get rowWidth() {
+        return UiConfig.betArrowSize
+            + UiConfig.betArrowGap
+            + this.strip.viewportWidth
+            + UiConfig.betArrowGap
+            + UiConfig.betArrowSize
+            + UiConfig.cardGap
+            + UiConfig.coinsButtonSize;
+    }
 
-        for (const [cents, chip] of this.#chips) {
-            chip.style.fill =
-                cents === this.model.selectedBetCents ? 0xffd54f : 0xffffff;
-            chip.interactive = this.model.enabled;
-            chip.buttonMode = this.model.enabled;
-        }
+    sync() {
+        this.strip.sync();
+        this.moreButton.setEnabled(this.model.enabled);
+        this.#syncArrows();
+    }
+
+    #layoutRow() {
+        const arrowSize = UiConfig.betArrowSize;
+        const gap = UiConfig.betArrowGap;
+        let x = -this.rowWidth / 2;
+
+        this.leftArrow.position.set(x, -arrowSize / 2);
+        this.addChild(this.leftArrow);
+        x += arrowSize + gap;
+
+        this.strip.position.set(x, 0);
+        this.addChild(this.strip);
+        x += this.strip.viewportWidth + gap;
+
+        this.rightArrow.position.set(x, -arrowSize / 2);
+        this.addChild(this.rightArrow);
+        x += arrowSize + UiConfig.cardGap;
+
+        this.moreButton.position.set(x, -UiConfig.coinsButtonSize / 2);
+        this.addChild(this.moreButton);
+    }
+
+    #syncArrows() {
+        this.leftArrow.setEnabled(this.strip.canScrollLeft);
+        this.rightArrow.setEnabled(this.strip.canScrollRight);
+    }
+
+    #createArrow(texture, onTap) {
+        return new CircleIconButton({
+            size: UiConfig.betArrowSize,
+            texture,
+            iconScale: UiConfig.betArrowIconScale,
+            fill: UiConfig.betArrowFill,
+            fillAlpha: UiConfig.betArrowFillAlpha,
+            disabledAlpha: UiConfig.betArrowDisabledAlpha,
+            onTap,
+        });
+    }
+
+    #createCoins(texture) {
+        return new CircleIconButton({
+            size: UiConfig.coinsButtonSize,
+            texture,
+            iconScale: UiConfig.coinsIconScale,
+            fill: UiConfig.coinsButtonFill,
+            fillAlpha: UiConfig.coinsButtonFillAlpha,
+            stroke: UiConfig.coinsButtonStroke,
+            strokeWidth: UiConfig.coinsButtonStrokeWidth,
+            onTap: () => {
+                if (this.model.enabled) {
+                    this.#onOpenMore?.();
+                }
+            },
+        });
     }
 }

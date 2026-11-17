@@ -27,11 +27,13 @@ const TRANSITIONS = {
         GameState.BONUS,
         GameState.SHOWING_WIN,
         GameState.ERROR,
+        GameState.IDLE,
     ],
     [GameState.FREE_SPINS]: [
         GameState.BONUS,
         GameState.SHOWING_WIN,
         GameState.ERROR,
+        GameState.IDLE,
     ],
     [GameState.BONUS]: [
         GameState.FREE_SPINS,

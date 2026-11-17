@@ -5,14 +5,14 @@ import {GameConfig} from '@/config/GameConfig.js';
 function createSelector(onSelect = vi.fn(), allowed = GameConfig.allowedBetsCents) {
     return {
         onSelect,
-        selector: new BetSelector(GameConfig.quickBetsCents, onSelect, allowed),
+        selector: new BetSelector(allowed, onSelect, GameConfig.defaultBetCents),
     };
 }
 
 describe('BetSelector', () => {
-    it('starts with the first quick bet selected by default', () => {
+    it('starts with the default bet selected', () => {
         const {selector} = createSelector();
-        expect(selector.selectedBetCents).toBe(GameConfig.quickBetsCents[0]);
+        expect(selector.selectedBetCents).toBe(GameConfig.defaultBetCents);
     });
 
     it('selectBet notifies onSelect with the bet amount', () => {
@@ -65,7 +65,7 @@ describe('BetSelector', () => {
         expect(selector.selectedBetCents).toBe(1000);
     });
 
-    it('accepts non-quick allowed bet amounts', () => {
+    it('accepts any allowed bet amount', () => {
         const {selector, onSelect} = createSelector();
 
         selector.selectBet(150);

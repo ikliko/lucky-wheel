@@ -113,8 +113,10 @@ export class GameController {
             this.balanceCents = round.balanceAfterRoundCents;
             this.#syncWalletUi();
 
-            this.stateMachine.transition(GameState.SHOWING_WIN);
-            await this.wheelScene.showWin(round.winCents);
+            if (round.winCents) {
+                this.stateMachine.transition(GameState.SHOWING_WIN);
+                await this.wheelScene.showWin(round.winCents);
+            }
 
             this.stateMachine.transition(GameState.IDLE);
             this.#setBetLocked(false);
