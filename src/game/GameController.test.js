@@ -133,7 +133,7 @@ describe('GameController', () => {
             {sessionId: 'session-1', betCents: GameConfig.defaultBetCents},
             expect.any(String)
         );
-        expect(wheelScene.spinTo).toHaveBeenCalledWith(5);
+        expect(wheelScene.spinTo.mock.calls[0][0]).toBe(5);
 
         await vi.waitFor(() => {
             expect(stateMachine.state).toBe(GameState.IDLE);
@@ -372,7 +372,7 @@ describe('GameController', () => {
         expect(wheelScene.setBalance).toHaveBeenCalledWith(99900);
         expect(wheelScene.setBalance).toHaveBeenCalledWith(100000);
         expect(wheelScene.showWin).toHaveBeenCalledWith(100);
-        expect(wheelScene.spinTo).toHaveBeenCalledWith(5);
+        expect(wheelScene.spinTo.mock.calls[0][0]).toBe(5);
     });
 
     it('calls showWin with 0 when server winCents is 0', async () => {
@@ -541,7 +541,7 @@ describe('GameController', () => {
             expect(stateMachine.state).toBe(GameState.IDLE);
         });
 
-        expect(wheelScene.spinTo).toHaveBeenCalledWith(11);
+        expect(wheelScene.spinTo.mock.calls[0][0]).toBe(11);
         expect(bonusFlow.play).toHaveBeenCalledWith(bonus);
         expect(bonusFlow.play.mock.invocationCallOrder[0])
             .toBeLessThan(wheelScene.showWin.mock.invocationCallOrder[0]);

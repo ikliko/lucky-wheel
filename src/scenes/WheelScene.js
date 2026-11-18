@@ -116,12 +116,12 @@ export class WheelScene extends BaseScene {
         this.betOptions.show();
     }
 
-    async spinTo(sectorIndex) {
+    async spinTo(sectorIndex, {onSectorChange} = {}) {
         if (!this.animator) {
             throw new Error('WheelAnimator is not initialized');
         }
 
-        await this.animator.spinTo({sectorIndex});
+        await this.animator.spinTo({sectorIndex, onSectorChange});
     }
 
     setBalance(cents) {

@@ -10,6 +10,7 @@ export class GameController {
         betCents = GameConfig.defaultBetCents,
         freeSpinsController = null,
         bonusFlow = null,
+        sounds = null,
     } = {}) {
         this.wheelScene = wheelScene;
         this.stateMachine = stateMachine;
@@ -18,9 +19,10 @@ export class GameController {
         this.balanceCents = balanceCents;
         this.betCents = betCents;
         this.bonusFlow = bonusFlow;
+        this.sounds = sounds;
 
         this.freeSpinsController = freeSpinsController ?? new FreeSpinsController(
-            wheelScene,
+            {spinTo: (sectorIndex) => this.#presentSpin(sectorIndex)},
             {
                 onEnterBonus: () => {
                     if (this.stateMachine.canTransition(GameState.BONUS)) {
@@ -49,6 +51,7 @@ export class GameController {
         this.stateMachine.transition(GameState.IDLE);
         this.#syncWalletUi();
         this.#setBetLocked(false);
+        this.sounds?.ensureBgm();
     }
 
     onSpinPressed() {
@@ -60,6 +63,7 @@ export class GameController {
             return;
         }
 
+        this.sounds?.ensureBgm();
         void this.#runBaseSpin();
     }
 
@@ -96,7 +100,7 @@ export class GameController {
             this.balanceCents = round.balanceAfterBetCents;
             this.#syncWalletUi();
 
-            await this.wheelScene.spinTo(round.result.sectorIndex);
+            await this.#presentSpin(round.result.sectorIndex);
 
             const isFreeSpins =
                 round.result?.type === 'free_spins' && round.result.freeSpins;
@@ -115,6 +119,7 @@ export class GameController {
 
             if (round.winCents) {
                 this.stateMachine.transition(GameState.SHOWING_WIN);
+                this.sounds?.play('win');
                 await this.wheelScene.showWin(round.winCents);
             }
 
@@ -124,12 +129,23 @@ export class GameController {
             this.#syncWalletUi();
         } catch (error) {
             console.error('Spin failed:', error);
+            this.sounds?.stop('tick');
 
             if (this.stateMachine.canTransition(GameState.ERROR)) {
                 this.stateMachine.transition(GameState.ERROR);
             }
 
             this.#setBetLocked(true);
+        }
+    }
+
+    async #presentSpin(sectorIndex) {
+        try {
+            await this.wheelScene.spinTo(sectorIndex, {
+                onSectorChange: () => this.sounds?.play('tick'),
+            });
+        } finally {
+            this.sounds?.stop('tick');
         }
     }
 

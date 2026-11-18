@@ -8,6 +8,7 @@ import {LoadingConfig} from '@/config/LoadingConfig.js';
 import {AssetManager} from '@/core/AssetManager.js';
 import {SceneManager} from '@/core/SceneManager.js';
 import {KeyboardControls} from '@/core/KeyboardControls.js';
+import {SoundsManager} from '@/core/audio/SoundsManager.js';
 
 import {LoadingScene} from '@/scenes/LoadingScene.js';
 import {WheelScene} from '@/scenes/WheelScene.js';
@@ -43,6 +44,7 @@ export class GameApplication {
         this.wheelScene = null;
         this.bonusScene = null;
         this.gameMenu = null;
+        this.sounds = null;
         this.controller = null;
         this.keyboard = null;
     }
@@ -88,6 +90,8 @@ export class GameApplication {
             const storage = new SessionStorage();
             const boot = await bootstrapSession(api, storage);
 
+            this.sounds = new SoundsManager();
+
             this.gameMenu = new GameMenu({
                 ticker: this.app.ticker,
                 onOpen: () => this.wheelScene?.betOptions?.hide(),
@@ -110,6 +114,7 @@ export class GameApplication {
                     api,
                     sessionId: boot.session.id,
                     balanceCents: boot.user.balanceCents,
+                    sounds: this.sounds,
                     bonusFlow: new BonusFlow(
                         this.sceneManager,
                         this.bonusScene,
@@ -139,6 +144,10 @@ export class GameApplication {
         this.keyboard?.detach();
         this.keyboard = null;
         this.controller = null;
+
+        this.sounds?.destroy();
+        this.sounds = null;
+        SoundsManager.stopAll();
 
         if (this.gameMenu) {
             this.gameMenu.destroy({children: true});

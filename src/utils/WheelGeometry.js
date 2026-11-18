@@ -1,7 +1,13 @@
 export class WheelGeometry {
     constructor(sectorCount, pointerAngle = -Math.PI / 2) {
+        this.sectorCount = sectorCount;
         this.pointerAngle = pointerAngle;
         this.sweep = (Math.PI * 2) / sectorCount;
+    }
+
+    sectorIndexAt(rotation) {
+        const shifted = this.normalizeAngle(-rotation) + this.sweep / 2;
+        return Math.floor(shifted / this.sweep) % this.sectorCount;
     }
 
     startAngle(index) {
