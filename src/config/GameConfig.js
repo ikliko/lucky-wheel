@@ -8,6 +8,7 @@ export const GameConfig = {
     freeSpinsAward: 3,
     bonusCellCount: 9,
     bonusWinCount: 3,
+    bonusBaseMultiplier: 2,
     bonusMaxPicks: 7,
     bonusHoldMs: 1200,
     bonusFitRatio: 0.9,

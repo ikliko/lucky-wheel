@@ -4,6 +4,7 @@ import {resolve} from 'node:path';
 
 export default defineConfig(({mode}) => {
     const {
+        VITE_GAME_MODE,
         VITE_GAME_API_URL,
         VITE_GAME_API_BASE_URL,
     } = loadEnv(mode, process.cwd());
@@ -29,12 +30,14 @@ export default defineConfig(({mode}) => {
             port: 5173,
             strictPort: true,
             open: false,
-            proxy: {
-                [VITE_GAME_API_BASE_URL]: {
-                    target: VITE_GAME_API_URL,
-                    changeOrigin: true,
+            ...(VITE_GAME_MODE === 'local' ? {} : {
+                proxy: {
+                    [VITE_GAME_API_BASE_URL]: {
+                        target: VITE_GAME_API_URL,
+                        changeOrigin: true,
+                    },
                 },
-            },
+            }),
         },
 
         optimizeDeps: {

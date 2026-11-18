@@ -2,7 +2,6 @@ import * as PIXI from 'pixi.js';
 
 import {AppConfig} from '@/config/AppConfig.js';
 import {AssetConfig} from '@/config/AssetConfig.js';
-import {ApiConfig} from '@/config/ApiConfig.js';
 import {LoadingConfig} from '@/config/LoadingConfig.js';
 
 import {AssetManager} from '@/core/AssetManager.js';
@@ -19,7 +18,7 @@ import {GameController} from '@/game/GameController.js';
 
 import {bootstrapSession} from '@/bootstrapSession.js';
 import {SessionStorage} from '@/storage/SessionStorage.js';
-import {GameApi} from '@/api/GameApi.js';
+import {createGameClient} from '@/api/createGameClient.js';
 
 export class GameApplication {
     #starting = false;
@@ -86,7 +85,7 @@ export class GameApplication {
 
             this.loadingScene.setProgress(LoadingConfig.pendingProgress);
 
-            const api = new GameApi(ApiConfig.baseUrl);
+            const api = createGameClient();
             const storage = new SessionStorage();
             const boot = await bootstrapSession(api, storage);
 
