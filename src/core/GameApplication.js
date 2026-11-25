@@ -93,6 +93,7 @@ export class GameApplication {
 
             this.gameMenu = new GameMenu({
                 ticker: this.app.ticker,
+                sounds: this.sounds,
                 onOpen: () => this.wheelScene?.betOptions?.hide(),
             });
 

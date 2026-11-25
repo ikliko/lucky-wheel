@@ -1,14 +1,18 @@
 import {SoundsConfig} from '@/config/SoundsConfig.js';
 
 const live = new Set();
+const SFX_IDS = new Set(['tick', 'win']);
 
 export class SoundsManager {
-    #enabled;
+    #sfxEnabled;
+    #musicEnabled;
     #entries = new Map();
     #destroyed = false;
 
     constructor(config = SoundsConfig) {
-        this.#enabled = config.enabledByDefault !== false;
+        const on = config.enabledByDefault !== false;
+        this.#sfxEnabled = on;
+        this.#musicEnabled = on;
 
         for (const [id, def] of Object.entries(config.sounds)) {
             const audio = new Audio(def.src);
@@ -30,15 +34,39 @@ export class SoundsManager {
         }
     }
 
+    get sfxEnabled() {
+        return this.#sfxEnabled;
+    }
+
+    get musicEnabled() {
+        return this.#musicEnabled;
+    }
+
+    /** Master: both channels (loading gate / old callers). */
     get enabled() {
-        return this.#enabled;
+        return this.#sfxEnabled && this.#musicEnabled;
     }
 
     setEnabled(enabled) {
-        this.#enabled = Boolean(enabled);
+        this.setSfxEnabled(enabled);
+        this.setMusicEnabled(enabled);
+    }
 
-        if (!this.#enabled) {
-            this.#stopPlaying();
+    setSfxEnabled(enabled) {
+        this.#sfxEnabled = Boolean(enabled);
+
+        if (!this.#sfxEnabled) {
+            for (const id of SFX_IDS) {
+                this.stop(id);
+            }
+        }
+    }
+
+    setMusicEnabled(enabled) {
+        this.#musicEnabled = Boolean(enabled);
+
+        if (!this.#musicEnabled) {
+            this.stop('bgm');
             return;
         }
 
@@ -48,7 +76,13 @@ export class SoundsManager {
     play(id) {
         const entry = this.#entries.get(id);
 
-        if (!entry || !this.#enabled || this.#destroyed) {
+        if (!entry || this.#destroyed) {
+            return;
+        }
+
+        const allowed = id === 'bgm' ? this.#musicEnabled : this.#sfxEnabled;
+
+        if (!allowed) {
             return;
         }
 
@@ -71,7 +105,7 @@ export class SoundsManager {
     }
 
     ensureBgm() {
-        if (!this.#enabled || this.#destroyed) {
+        if (!this.#musicEnabled || this.#destroyed) {
             return;
         }
 
@@ -90,7 +124,8 @@ export class SoundsManager {
         }
 
         this.#destroyed = true;
-        this.#enabled = false;
+        this.#sfxEnabled = false;
+        this.#musicEnabled = false;
         live.delete(this);
 
         for (const entry of this.#entries.values()) {
@@ -98,12 +133,6 @@ export class SoundsManager {
         }
 
         this.#entries.clear();
-    }
-
-    #stopPlaying() {
-        for (const id of this.#entries.keys()) {
-            this.stop(id);
-        }
     }
 
     #release(audio) {

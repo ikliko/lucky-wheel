@@ -71,6 +71,7 @@ export const UiConfig = {
     menuInfoBodySize: 15,
     menuInfoLineGap: 8,
     menuInfoSectionGap: 22,
+    menuTabGap: 28,
 
     chromeBalanceGap: 52,
     chromeBetGap: 136,
